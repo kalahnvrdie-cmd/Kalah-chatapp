@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Kalah Chat</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & Noto Sans Sinhala -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase App & Realtime Database Compat SDK (Best for Single-File HTML & Android APK WebView) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans Sinhala', 'sans-serif'],
+          },
+          colors: {
+            kalah: {
+              bg: '#050a14',        // Deep dark navy-black background
+              surface: '#0b1526',   // Dark navy header & nav
+              card: '#11223d',      // Elevated cards & inputs
+              hover: '#162b4d',     // Hover / active state
+              blue: '#1d6ef2',      // Primary accent blue
+              blueBright: '#2b7fff',// Bright highlight blue
+              sent: '#16499c',      // Outgoing message bubble
+              received: '#101e36',  // Incoming message bubble
+              muted: '#8fa3bf',     // Muted cool gray text
+              border: '#192d4d'     // Subtle dark blue border
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100dvh;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #050a14;
+      color: #ffffff;
+      overflow: hidden;
+      font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+    }
+
+    /* Custom Sleek Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #192d4d;
+      border-radius: 9999px;
+    }
+
+    /* Default Dark-Blue Geometric & Tech Doodle Chat Wallpaper */
+    .chat-wallpaper {
+      background-color: #060d1a;
+      background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23102445' stroke-width='1.5'%3E%3Cpath d='M20 20 L35 10 L50 20 L50 38 L35 48 L20 38 Z'/%3E%3Ccircle cx='90' cy='30' r='12'/%3E%3Cpath d='M84 30 L96 30 M90 24 L90 36'/%3E%3Crect x='18' y='75' width='24' height='18' rx='5'/%3E%3Cpath d='M24 93 L20 100 L30 93'/%3E%3Cpath d='M75 80 Q90 65 105 80 T105 95'/%3E%3Ccircle cx='60' cy='60' r='3' fill='%23102445'/%3E%3Cpath d='M10 55 L16 61 M16 55 L10 61'/%3E%3C/g%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    /* Pulse Ring Animation for Calls & Recording */
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      70% { transform: scale(1.35); opacity: 0; }
+      100% { transform: scale(1.35); opacity: 0; }
+    }
+    .animate-pulse-ring {
+      animation: pulseRing 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+
+    /* Message Bubble Tails */
+    .bubble-sent {
+      border-radius: 18px 18px 4px 18px;
+    }
+    .bubble-received {
+      border-radius: 18px 18px 18px 4px;
+    }
+
+    /* Hide scrollbar for horizontal chips */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-kalah-bg text-white select-none">
+
+  <!-- ==================== GLOBAL TOAST NOTIFICATION ==================== -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-[92%] max-w-sm"></div>
+
+  <!-- ==================== 1. AUTH / PROFILE SETUP SCREEN ==================== -->
+  <div id="auth-screen" class="fixed inset-0 z-50 bg-kalah-bg flex flex-col justify-between p-6 overflow-y-auto hidden">
+    <div class="max-w-md w-full mx-auto my-auto space-y-6">
+      <!-- App Logo & Title -->
+      <div class="text-center space-y-2">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-kalah-blueBright to-blue-900 flex items-center justify-center shadow-lg shadow-blue-600/30 border border-blue-400/30">
+          <i data-lucide="message-circle-code" class="w-10 h-10 text-white"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white">Kalah Chat</h1>
+        <p class="text-sm text-kalah-muted">Private Dark-Blue Messenger • 24h Auto-Vanish</p>
+      </div>
+
+      <!-- Auth Card -->
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-6 shadow-2xl space-y-5">
+        <div class="flex bg-kalah-bg p-1 rounded-2xl border border-kalah-border">
+          <button id="tab-login-mode" onclick="setAuthMode('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition">Login</button>
+          <button id="tab-register-mode" onclick="setAuthMode('register')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition">Create Profile</button>
+        </div>
+
+        <!-- Avatar Picker (Register Mode Only) -->
+        <div id="register-avatar-box" class="hidden flex flex-col items-center gap-2">
+          <label for="reg-avatar-input" class="relative cursor-pointer group">
+            <img id="reg-avatar-preview" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
+            <div class="absolute bottom-0 right-0 bg-kalah-blue p-2 rounded-full border-2 border-kalah-surface shadow-md group-hover:scale-105 transition">
+              <i data-lucide="camera" class="w-4 h-4 text-white"></i>
+            </div>
+          </label>
+          <input type="file" id="reg-avatar-input" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'reg-avatar-preview', 'reg')" />
+          <span class="text-xs text-kalah-muted">Tap to add Profile Photo</span>
+        </div>
+
+        <!-- Phone Input -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Phone Number</label>
+          <div class="relative">
+            <i data-lucide="phone" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
+            <input id="auth-phone" type="tel" placeholder="0771234567" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
+          </div>
+        </div>
+
+        <!-- PIN Input -->
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">4-Digit Secret PIN</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
+            <input id="auth-pin" type="password" maxlength="6" inputmode="numeric" placeholder="••••" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium tracking-widest" />
+          </div>
+        </div>
+
+        <!-- Display Name (Register Only) -->
+        <div id="register-name-box" class="hidden space-y-1.5">
+          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Your Display Name</label>
+          <div class="relative">
+            <i data-lucide="user" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
+            <input id="auth-name" type="text" placeholder="e.g. Kalah" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
+          </div>
+        </div>
+
+        <!-- Bio (Register Only) -->
+        <div id="register-bio-box" class="hidden space-y-1.5">
+          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Bio / Status</label>
+          <div class="relative">
+            <i data-lucide="sparkles" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
+            <input id="auth-bio" type="text" placeholder="Hey there! I am using Kalah Chat." value="Available on Kalah Chat ⚡" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
+          </div>
+        </div>
+
+        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright hover:opacity-95 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+          <span>Continue to Kalah Chat</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <p class="text-center text-xs text-kalah-muted/70">
+        Connected to <span class="text-blue-400 font-semibold">kalah-private-node</span> • End-to-End 24h Auto-Delete
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== 2. MAIN APP SHELL ==================== -->
+  <div id="main-app" class="h-[100dvh] w-full max-w-lg mx-auto bg-kalah-bg flex flex-col relative hidden border-x border-kalah-border/40">
+
+    <!-- TOP HEADER (Visible on Main Tabs) -->
+    <header id="main-header" class="bg-kalah-surface px-4 pt-4 pb-3 border-b border-kalah-border/60 shrink-0 z-20">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-[22px] font-extrabold tracking-tight text-white">Kalah Chat</h1>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-kalah-blue/20 text-blue-400 border border-blue-500/30">24H</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="openFriendsModal()" title="Find Friends" class="p-2.5 rounded-full hover:bg-kalah-card text-white transition">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+          </button>
+          <button onclick="switchMainTab('profile')" title="Settings & Profile" class="p-2.5 rounded-full hover:bg-kalah-card text-white transition">
+            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Bar (Shown on Chats Tab) -->
+      <div id="header-search-wrap" class="mt-3">
+        <div class="relative flex items-center">
+          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-4 pointer-events-none"></i>
+          <input id="chat-search-input" type="text" oninput="renderChatList()" placeholder="Search chats or phone number..." class="w-full bg-kalah-card text-white placeholder-kalah-muted text-sm rounded-full pl-11 pr-4 py-2.5 border border-kalah-border/70 focus:border-kalah-blueBright outline-none transition" />
+        </div>
+
+        <!-- Filter Chips -->
+        <div class="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar">
+          <button onclick="setChatFilter('all')" id="chip-all" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-blue text-white transition shrink-0">All</button>
+          <button onclick="setChatFilter('unread')" id="chip-unread" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">Unread</button>
+          <button onclick="setChatFilter('friends')" id="chip-friends" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">Friends (<span id="friends-count-badge">0</span>)</button>
+          <button onclick="openFriendsModal()" class="w-7 h-7 rounded-full bg-kalah-card border border-kalah-border flex items-center justify-center text-white hover:bg-kalah-hover shrink-0">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- TAB 1: CHATS LIST -->
+    <main id="view-chats" class="flex-1 overflow-y-auto divide-y divide-kalah-border/30 pb-24">
+      <!-- 24h Auto-Delete Info Strip -->
+      <div class="px-4 py-2 bg-kalah-surface/60 flex items-center justify-between text-[11px] text-kalah-muted border-b border-kalah-border/40">
+        <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i> Chats auto-delete after 24 hours</span>
+        <span id="online-status-pill" class="text-emerald-400 font-medium flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
+        </span>
+      </div>
+
+      <!-- Pinned Kalah AI Chat Item -->
+      <div onclick="openAIChat()" class="px-4 py-3.5 flex items-center gap-3.5 hover:bg-kalah-surface/80 active:bg-kalah-card cursor-pointer transition bg-gradient-to-r from-blue-950/30 to-transparent">
+        <div class="relative shrink-0">
+          <div class="w-13 h-13 w-[52px] h-[52px] rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 p-[2px] shadow-md shadow-blue-500/20">
+            <div class="w-full h-full rounded-full bg-kalah-bg flex items-center justify-center">
+              <i data-lucide="sparkles" class="w-6 h-6 text-blue-400"></i>
+            </div>
+          </div>
+          <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-kalah-blueBright border-2 border-kalah-bg flex items-center justify-center">
+            <i data-lucide="bot" class="w-2.5 h-2.5 text-white"></i>
+          </span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-bold text-[15px] text-white truncate">Kalah AI</h3>
+              <span class="px-1.5 py-0.2 text-[9px] font-bold bg-blue-500/20 text-blue-300 rounded border border-blue-400/30">AI</span>
+            </div>
+            <span class="text-[11px] text-blue-400 font-medium">Pinned</span>
+          </div>
+          <p id="ai-last-preview" class="text-xs text-kalah-muted truncate mt-0.5">Ask anything in Sinhala or English ✨</p>
+        </div>
+      </div>
+
+      <!-- Dynamic Friends Chat List Container -->
+      <div id="chat-list-container" class="divide-y divide-kalah-border/30">
+        <!-- Populated dynamically -->
+      </div>
+    </main>
+
+    <!-- TAB 2: CALLS HISTORY -->
+    <main id="view-calls" class="flex-1 overflow-y-auto p-4 pb-24 hidden space-y-3">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-kalah-muted">Recent Voice Calls</h2>
+        <button onclick="openFriendsModal()" class="text-xs font-semibold text-blue-400 hover:underline flex items-center gap-1">
+          <i data-lucide="phone-plus" class="w-3.5 h-3.5"></i> New Call
+        </button>
+      </div>
+      <div id="calls-list-container" class="space-y-2">
+        <!-- Populated dynamically -->
+      </div>
+    </main>
+
+    <!-- TAB 3: PROFILE & HIDDEN AI KEY SETTINGS -->
+    <main id="view-profile" class="flex-1 overflow-y-auto p-4 pb-24 hidden space-y-5">
+      <!-- Profile Card -->
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-5 flex flex-col items-center text-center space-y-3">
+        <label for="edit-avatar-input" class="relative cursor-pointer group">
+          <img id="profile-avatar-img" src="" alt="Profile" class="w-24 h-24 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
+          <div class="absolute bottom-0 right-0 bg-kalah-blue p-2 rounded-full border-2 border-kalah-surface shadow-md">
+            <i data-lucide="camera" class="w-4 h-4 text-white"></i>
+          </div>
+        </label>
+        <input type="file" id="edit-avatar-input" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'profile-avatar-img', 'edit')" />
+
+        <div>
+          <h2 id="profile-display-name" class="text-lg font-bold text-white">User Name</h2>
+          <p id="profile-display-phone" class="text-xs text-blue-400 font-semibold mt-0.5">+94 77 000 0000</p>
+        </div>
+
+        <div class="w-full space-y-3 pt-2 text-left">
+          <div>
+            <label class="text-[11px] font-semibold text-kalah-muted uppercase">Display Name</label>
+            <input id="edit-name-input" type="text" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-kalah-muted uppercase">Bio / About</label>
+            <input id="edit-bio-input" type="text" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+          </div>
+          <button onclick="saveProfileChanges()" class="w-full py-2.5 rounded-xl bg-kalah-blue hover:bg-kalah-blueBright text-white font-semibold text-sm transition">
+            Save Profile
+          </button>
+        </div>
+      </div>
+
+      <!-- Hidden Gemini API Key Configuration (GitHub Safe) -->
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-5 h-5 text-blue-400"></i>
+            <h3 class="font-bold text-sm text-white">Kalah AI Key (GitHub-Safe)</h3>
+          </div>
+          <span id="ai-key-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">Checking...</span>
+        </div>
+        <p class="text-xs text-kalah-muted leading-relaxed">
+          To keep your API key hidden from GitHub, paste it inside Firebase RTDB at <code class="text-blue-300 bg-kalah-card px-1.5 py-0.5 rounded">kalah_messenger_v2/config/gemini_key</code> OR save it locally on this device below:
+        </p>
+        <div class="flex gap-2">
+          <input id="local-gemini-key-input" type="password" placeholder="AIzaSy... (Optional local override)" class="flex-1 bg-kalah-card border border-kalah-border rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-kalah-blueBright" />
+          <button onclick="saveLocalGeminiKey()" class="px-3.5 py-2 rounded-xl bg-kalah-blue text-xs font-semibold text-white shrink-0">Save</button>
+        </div>
+      </div>
+
+      <!-- Storage & Rules Info -->
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-2 text-xs text-kalah-muted">
+        <div class="flex justify-between">
+          <span>Auto-Delete Timer:</span>
+          <span class="text-white font-semibold">24 Hours</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Photo / Video Max Size:</span>
+          <span class="text-white font-semibold">7.0 MB</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Voice Note Max Size:</span>
+          <span class="text-white font-semibold">1.0 MB</span>
+        </div>
+      </div>
+
+      <!-- Logout Button -->
+      <button onclick="logoutUser()" class="w-full py-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/25 transition flex items-center justify-center gap-2">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        <span>Log Out</span>
+      </button>
+    </main>
+
+    <!-- FLOATING ACTION BUTTON (New Chat / Find Friends) -->
+    <button id="fab-new-chat" onclick="openFriendsModal()" class="fixed bottom-24 right-5 z-20 w-14 h-14 rounded-2xl bg-gradient-to-br from-kalah-blueBright to-blue-700 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center hover:scale-105 active:scale-95 transition border border-blue-400/30">
+      <i data-lucide="message-square-plus" class="w-6 h-6"></i>
+    </button>
+
+    <!-- BOTTOM NAVIGATION BAR (4 Tabs matching approved dark-blue UI) -->
+    <nav id="bottom-nav" class="bg-kalah-surface border-t border-kalah-border/70 px-2 py-2 flex items-center justify-around shrink-0 z-20">
+      <button onclick="switchMainTab('chats')" id="nav-chats" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-white transition">
+        <div id="nav-pill-chats" class="px-4 py-1 rounded-full bg-kalah-blue/25 text-blue-400 transition">
+          <i data-lucide="message-square" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[11px] font-bold">Chats</span>
+      </button>
+
+      <button onclick="switchMainTab('calls')" id="nav-calls" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
+        <div id="nav-pill-calls" class="px-4 py-1 rounded-full transition">
+          <i data-lucide="phone" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[11px] font-semibold">Calls</span>
+      </button>
+
+      <button onclick="openAIChat()" id="nav-ai" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
+        <div id="nav-pill-ai" class="px-4 py-1 rounded-full transition">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[11px] font-semibold">Kalah AI</span>
+      </button>
+
+      <button onclick="switchMainTab('profile')" id="nav-profile" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
+        <div id="nav-pill-profile" class="px-4 py-1 rounded-full transition">
+          <i data-lucide="user-circle" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[11px] font-semibold">Profile</span>
+      </button>
+    </nav>
+
+    <!-- ==================== 3. ACTIVE CHAT ROOM OVERLAY ==================== -->
+    <div id="chat-room" class="fixed inset-0 z-30 max-w-lg mx-auto bg-kalah-bg flex flex-col hidden">
+      <!-- Chat Room Top Header -->
+      <div class="bg-kalah-surface px-3 py-3 border-b border-kalah-border flex items-center justify-between shrink-0 shadow-md">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button onclick="closeChatRoom()" class="p-2 rounded-full hover:bg-kalah-card text-white transition shrink-0">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <img id="room-avatar" src="" alt="DP" class="w-10 h-10 rounded-full object-cover border border-kalah-blue/50 bg-kalah-card shrink-0" />
+          <div id="room-ai-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shrink-0 hidden">
+            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="room-name" class="font-bold text-sm text-white truncate">Friend Name</h3>
+            <p id="room-status" class="text-[11px] text-blue-400 truncate">Online</p>
+          </div>
+        </div>
+
+        <!-- Call Action Button (Hidden in AI Chat) -->
+        <div id="room-call-actions" class="flex items-center gap-1 shrink-0">
+          <button onclick="startVoiceCall()" title="Voice Call" class="p-2.5 rounded-full bg-kalah-card hover:bg-kalah-blue text-white transition border border-kalah-border">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Scroll Area with Default Dark-Blue Wallpaper -->
+      <div id="messages-container" class="flex-1 overflow-y-auto p-3.5 space-y-2.5 chat-wallpaper">
+        <!-- Ephemeral Notice Pill -->
+        <div class="flex justify-center my-2">
+          <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
+            🔒 Messages, photos, videos & voice notes vanish after 24 hours.
+          </span>
+        </div>
+        <!-- Messages rendered here -->
+      </div>
+
+      <!-- Recording Indicator Bar (Shown while recording voice) -->
+      <div id="recording-bar" class="bg-kalah-surface border-t border-red-500/40 px-4 py-3 flex items-center justify-between hidden">
+        <div class="flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+          <span class="text-sm font-bold text-white">Recording... <span id="record-timer" class="text-red-400 font-mono">00:00</span></span>
+          <span class="text-[10px] text-kalah-muted">(Max 1MB)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="cancelVoiceRecording()" class="px-3 py-1.5 rounded-xl bg-kalah-card text-xs font-semibold text-red-400 hover:bg-red-500/20">Cancel</button>
+          <button onclick="stopAndSendVoice()" class="px-3.5 py-1.5 rounded-xl bg-kalah-blue text-xs font-bold text-white flex items-center gap-1">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i> Send
+          </button>
+        </div>
+      </div>
+
+      <!-- Chat Input Bar -->
+      <div id="chat-input-bar" class="bg-kalah-surface px-3 py-2.5 border-t border-kalah-border flex items-end gap-2 shrink-0">
+        <!-- Attachment Button (Photo/Video < 7MB) -->
+        <button id="attach-media-btn" onclick="document.getElementById('media-file-input').click()" title="Send Photo or Video (<7MB)" class="p-3 rounded-full bg-kalah-card hover:bg-kalah-hover text-kalah-muted hover:text-white transition shrink-0">
+          <i data-lucide="paperclip" class="w-5 h-5"></i>
+        </button>
+        <input type="file" id="media-file-input" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(event)" />
+
+        <!-- Text Box -->
+        <div class="flex-1 bg-kalah-card border border-kalah-border focus-within:border-kalah-blueBright rounded-3xl px-4 py-2.5 flex items-center">
+          <input id="message-text-input" type="text" onkeydown="if(event.key==='Enter') sendTextMessage()" oninput="toggleMicSendBtn()" placeholder="Message..." class="w-full bg-transparent text-sm text-white placeholder-kalah-muted outline-none" />
+        </div>
+
+        <!-- Mic Button (Shown when input is empty) -->
+        <button id="mic-record-btn" onclick="startVoiceRecording()" title="Record Voice Note (<1MB)" class="p-3 rounded-full bg-kalah-blue hover:bg-kalah-blueBright text-white shadow-md transition shrink-0">
+          <i data-lucide="mic" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Send Button (Shown when typing) -->
+        <button id="send-text-btn" onclick="sendTextMessage()" class="p-3 rounded-full bg-kalah-blueBright hover:bg-blue-500 text-white shadow-md transition shrink-0 hidden">
+          <i data-lucide="send" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 4. FIND FRIENDS / DIRECTORY MODAL ==================== -->
+    <div id="friends-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[82dvh] flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between pb-3 border-b border-kalah-border">
+          <div>
+            <h3 class="text-base font-bold text-white">Find Friends on Kalah Chat</h3>
+            <p class="text-xs text-kalah-muted">Search by phone number or tap a friend to chat</p>
+          </div>
+          <button onclick="closeFriendsModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div class="mt-3 relative">
+          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input id="directory-search-input" type="text" oninput="renderDirectoryList()" placeholder="Enter friend's phone number or name..." class="w-full bg-kalah-card border border-kalah-border rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+        </div>
+
+        <div id="directory-list-container" class="flex-1 overflow-y-auto mt-3 space-y-2 pr-1">
+          <!-- Registered users populated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. WHATSAPP-STYLE VOICE CALL SCREEN ==================== -->
+    <div id="call-overlay" class="fixed inset-0 z-50 bg-gradient-to-b from-[#07152e] via-[#050c1a] to-[#030710] flex flex-col justify-between p-8 hidden">
+      <!-- Top Call Encryption Label -->
+      <div class="text-center space-y-1 pt-4">
+        <div class="flex items-center justify-center gap-1.5 text-xs text-blue-300/80 font-medium">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <span>Kalah End-to-End Encrypted Voice</span>
+        </div>
+      </div>
+
+      <!-- Center Caller Avatar & Status -->
+      <div class="flex flex-col items-center text-center space-y-5 my-auto">
+        <div class="relative">
+          <div id="call-pulse-ring" class="absolute inset-0 rounded-full bg-kalah-blueBright/30 animate-pulse-ring"></div>
+          <img id="call-peer-avatar" src="" alt="Caller" class="w-32 h-32 rounded-full object-cover border-4 border-kalah-blueBright/60 relative z-10 bg-kalah-card shadow-2xl" />
+        </div>
+        <div class="space-y-1.5">
+          <h2 id="call-peer-name" class="text-2xl font-extrabold text-white tracking-tight">Friend Name</h2>
+          <p id="call-peer-phone" class="text-xs text-kalah-muted font-medium">+94 77 000 0000</p>
+          <p id="call-status-text" class="text-sm font-semibold text-blue-400 pt-1">Calling...</p>
+        </div>
+      </div>
+
+      <!-- Hidden Remote Audio Element -->
+      <audio id="remote-audio" autoplay playsinline></audio>
+
+      <!-- Bottom Call Controls -->
+      <div class="pb-6">
+        <!-- Incoming Call Buttons (Accept / Decline) -->
+        <div id="incoming-call-controls" class="flex items-center justify-around max-w-xs mx-auto hidden">
+          <button onclick="declineIncomingCall()" class="flex flex-col items-center gap-2">
+            <div class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/40 transition">
+              <i data-lucide="phone-off" class="w-7 h-7"></i>
+            </div>
+            <span class="text-xs font-semibold text-red-300">Decline</span>
+          </button>
+
+          <button onclick="acceptIncomingCall()" class="flex flex-col items-center gap-2">
+            <div class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/40 animate-bounce">
+              <i data-lucide="phone" class="w-7 h-7"></i>
+            </div>
+            <span class="text-xs font-semibold text-emerald-300">Accept</span>
+          </button>
+        </div>
+
+        <!-- Active / Outgoing Call Controls (Speaker, Mute, End Call) -->
+        <div id="active-call-controls" class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-4 flex items-center justify-around max-w-xs mx-auto shadow-2xl">
+          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="volume-2" class="w-6 h-6"></i>
+          </button>
+          <button onclick="toggleCallMute()" id="btn-call-mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="mic" class="w-6 h-6"></i>
+          </button>
+          <button onclick="endCurrentCall()" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
+            <i data-lucide="phone-off" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== JAVASCRIPT APPLICATION LOGIC ==================== -->
+  <script>
+    // 1. EXACT FIREBASE CONFIGURATION PROVIDED BY USER
+    const firebaseConfig = {
+      apiKey: "AIzaSyDyVqsqYbsVr0ffvo_lUThdSHR6DlAV-2M",
+      authDomain: "kalah-private-node.firebaseapp.com",
+      databaseURL: "https://kalah-private-node-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "kalah-private-node",
+      storageBucket: "kalah-private-node.firebasestorage.app",
+      messagingSenderId: "950952437135",
+      appId: "1:950952437135:web:bcb25a50ca281531f317fa",
+      measurementId: "G-7G794WMQMW"
+    };
+
+    // Initialize Firebase safely
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Isolated Root Path so existing Firebase data is untouched
+    const ROOT_NODE = 'kalah_messenger_v2';
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+    const MAX_MEDIA_BYTES = 7 * 1024 * 1024; // 7MB limit for Photos/Videos
+    const MAX_VOICE_BYTES = 1 * 1024 * 1024; // 1MB limit for Voice Notes
+
+    // Global State
+    let currentUser = null;
+    let authMode = 'login';
+    let tempRegAvatar = '';
+    let allUsersMap = {};
+    let activeChatPeer = null; // User object or 'KALAH_AI'
+    let activeChatListener = null;
+    let currentChatFilter = 'all';
+    let unreadCounts = {};
+    let lastMessagesMap = {};
+    let aiChatHistory = [];
+    let remoteGeminiKey = '';
+
+    // Voice Recording State
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordInterval = null;
+    let recordSeconds = 0;
+
+    // WebRTC Voice Call State
+    let peerConnection = null;
+    let localStream = null;
+    let activeCallData = null;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+    let isMuted = false;
+    let isSpeaker = true;
+
+    const rtcConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    };
+
+    // Default SVG Avatar Generator
+    function getDefaultAvatar(name = 'K') {
+      const letter = (name.trim()[0] || 'K').toUpperCase();
+      return `data:image/svg+xml;utf8,${encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1d6ef2"/>
+              <stop offset="100%" stop-color="#0b1d3a"/>
+            </linearGradient>
+          </defs>
+          <rect width="120" height="120" rx="60" fill="url(#g)"/>
+          <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-size="50" font-weight="bold">${letter}</text>
+        </svg>`
+      )}`;
+    }
+
+    // Toast Notification Helper (Replaces alert())
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        info: 'bg-kalah-surface border-kalah-blueBright text-white',
+        success: 'bg-emerald-950/95 border-emerald-500 text-emerald-100',
+        error: 'bg-red-950/95 border-red-500 text-red-100'
+      };
+      toast.className = `px-4 py-3 rounded-2xl border shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 transform translate-y-0 ${colors[type] || colors.info}`;
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // Normalize Phone Number
+    function normalizePhone(raw) {
+      return raw.replace(/[^0-9]/g, '');
+    }
+
+    // Generate deterministic Chat ID for two users
+    function getChatId(phone1, phone2) {
+      return [phone1, phone2].sort().join('_');
+    }
+
+    // ==================== INITIALIZATION ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      tempRegAvatar = getDefaultAvatar('K');
+      document.getElementById('reg-avatar-preview').src = tempRegAvatar;
+
+      // Load saved AI history
+      try {
+        const savedAI = localStorage.getItem('kalah_ai_history');
+        if (savedAI) aiChatHistory = JSON.parse(savedAI);
+      } catch (e) {}
+
+      // Check existing login session
+      const savedSession = localStorage.getItem('kalah_user_session');
+      if (savedSession) {
+        try {
+          currentUser = JSON.parse(savedSession);
+          bootMainApp();
+        } catch (e) {
+          showAuthScreen();
+        }
+      } else {
+        showAuthScreen();
+      }
+    });
+
+    function showAuthScreen() {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('main-app').classList.add('hidden');
+    }
+
+    // ==================== AUTH & PROFILE CREATION ====================
+    function setAuthMode(mode) {
+      authMode = mode;
+      const loginBtn = document.getElementById('tab-login-mode');
+      const regBtn = document.getElementById('tab-register-mode');
+      const regFields = ['register-avatar-box', 'register-name-box', 'register-bio-box'];
+
+      if (mode === 'login') {
+        loginBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition';
+        regBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition';
+        regFields.forEach(id => document.getElementById(id).classList.add('hidden'));
+      } else {
+        regBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition';
+        loginBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition';
+        regFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
+      }
+    }
+
+    // Compress & Resize Profile Avatar to crisp 200x200 JPEG (< 40KB)
+    function handleAvatarSelect(event, previewImgId, context) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > MAX_MEDIA_BYTES) {
+        showToast('Image must be under 7MB!', 'error');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 220;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          // Center crop square
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          document.getElementById(previewImgId).src = compressedDataUrl;
+
+          if (context === 'reg') {
+            tempRegAvatar = compressedDataUrl;
+          } else if (context === 'edit' && currentUser) {
+            currentUser.avatar = compressedDataUrl;
+            db.ref(`${ROOT_NODE}/users/${currentUser.phone}/avatar`).set(compressedDataUrl);
+            localStorage.setItem('kalah_user_session', JSON.stringify(currentUser));
+            showToast('Profile photo updated!', 'success');
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitAuth() {
+      const phone = normalizePhone(document.getElementById('auth-phone').value);
+      const pin = document.getElementById('auth-pin').value.trim();
+
+      if (phone.length < 7) {
+        showToast('Please enter a valid phone number!', 'error');
+        return;
+      }
+      if (pin.length < 4) {
+        showToast('Enter at least a 4-digit PIN!', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('auth-submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = `<span>Connecting...</span>`;
+
+      try {
+        const userRef = db.ref(`${ROOT_NODE}/users/${phone}`);
+        const snapshot = await userRef.once('value');
+        const existingData = snapshot.val();
+
+        if (authMode === 'login') {
+          if (!existingData) {
+            showToast('Number not found! Switch to "Create Profile" first.', 'error');
+            setAuthMode('register');
+            btn.disabled = false;
+            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
+            return;
+          }
+          if (existingData.pin !== pin) {
+            showToast('Incorrect PIN! Try again.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
+            return;
+          }
+          currentUser = existingData;
+        } else {
+          // Register Mode
+          const name = document.getElementById('auth-name').value.trim();
+          const bio = document.getElementById('auth-bio').value.trim() || 'Available on Kalah Chat ⚡';
+          if (!name) {
+            showToast('Please enter your display name!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
+            return;
+          }
+          if (existingData && existingData.pin !== pin) {
+            showToast('Number already registered with another PIN!', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
+            return;
+          }
+
+          currentUser = {
+            phone,
+            pin,
+            name,
+            bio,
+            avatar: tempRegAvatar || getDefaultAvatar(name),
+            online: true,
+            lastSeen: Date.now()
+          };
+          await userRef.set(currentUser);
+        }
+
+        localStorage.setItem('kalah_user_session', JSON.stringify(currentUser));
+        bootMainApp();
+        showToast(`Welcome, ${currentUser.name}!`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('Firebase connection error. Check internet!', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
+      }
+    }
+
+    function logoutUser() {
+      if (currentUser) {
+        db.ref(`${ROOT_NODE}/users/${currentUser.phone}`).update({
+          online: false,
+          lastSeen: Date.now()
+        });
+      }
+      localStorage.removeItem('kalah_user_session');
+      location.reload();
+    }
+
+    // ==================== BOOT MAIN APPLICATION ====================
+    function bootMainApp() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('main-app').classList.remove('hidden');
+
+      // Populate Profile Tab
+      document.getElementById('profile-avatar-img').src = currentUser.avatar || getDefaultAvatar(currentUser.name);
+      document.getElementById('profile-display-name').textContent = currentUser.name;
+      document.getElementById('profile-display-phone').textContent = currentUser.phone;
+      document.getElementById('edit-name-input').value = currentUser.name;
+      document.getElementById('edit-bio-input').value = currentUser.bio || '';
+
+      // Set Presence Online
+      const myUserRef = db.ref(`${ROOT_NODE}/users/${currentUser.phone}`);
+      myUserRef.update({ online: true, lastSeen: Date.now() });
+      myUserRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
+
+      // Fetch Hidden Gemini API Key from Firebase RTDB (GitHub Safe)
+      fetchHiddenGeminiKey();
+
+      // Listen to all registered users (Friends Directory ~30 users)
+      db.ref(`${ROOT_NODE}/users`).on('value', (snap) => {
+        allUsersMap = snap.val() || {};
+        const friendCount = Object.keys(allUsersMap).filter(p => p !== currentUser.phone).length;
+        document.getElementById('friends-count-badge').textContent = friendCount;
+        renderChatList();
+        renderDirectoryList();
+        setupChatPreviewsListeners();
+      });
+
+      // Listen for Incoming WebRTC Voice Calls
+      listenForIncomingCalls();
+
+      // Render Call Logs
+      renderCallHistory();
+
+      // Run 24-Hour Auto-Cleanup every 60 seconds
+      run24HourCleanup();
+      setInterval(run24HourCleanup, 60000);
+    }
+
+    function saveProfileChanges() {
+      const newName = document.getElementById('edit-name-input').value.trim();
+      const newBio = document.getElementById('edit-bio-input').value.trim();
+      if (!newName) {
+        showToast('Name cannot be empty!', 'error');
+        return;
+      }
+      currentUser.name = newName;
+      currentUser.bio = newBio;
+      db.ref(`${ROOT_NODE}/users/${currentUser.phone}`).update({
+        name: newName,
+        bio: newBio
+      });
+      localStorage.setItem('kalah_user_session', JSON.stringify(currentUser));
+      document.getElementById('profile-display-name').textContent = newName;
+      showToast('Profile saved successfully!', 'success');
+    }
+
+    // ==================== NAVIGATION TABS ====================
+    function switchMainTab(tab) {
+      ['chats', 'calls', 'profile'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`nav-${t}`).classList.remove('text-white');
+        document.getElementById(`nav-${t}`).classList.add('text-kalah-muted');
+        document.getElementById(`nav-pill-${t}`).classList.remove('bg-kalah-blue/25', 'text-blue-400');
+      });
+
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
+      document.getElementById(`nav-${tab}`).classList.add('text-white');
+      document.getElementById(`nav-${tab}`).classList.remove('text-kalah-muted');
+      document.getElementById(`nav-pill-${tab}`).classList.add('bg-kalah-blue/25', 'text-blue-400');
+
+      // Show search bar & FAB only on Chats tab
+      document.getElementById('header-search-wrap').classList.toggle('hidden', tab !== 'chats');
+      document.getElementById('fab-new-chat').classList.toggle('hidden', tab !== 'chats');
+    }
+
+    // ==================== CHAT LIST & 24H AUTO-CLEANUP ====================
+    const monitoredChatIds = new Set();
+
+    function setupChatPreviewsListeners() {
+      Object.keys(allUsersMap).forEach(peerPhone => {
+        if (peerPhone === currentUser.phone) return;
+        const chatId = getChatId(currentUser.phone, peerPhone);
+        if (monitoredChatIds.has(chatId)) return;
+        monitoredChatIds.add(chatId);
+
+        db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).limitToLast(15).on('value', (snap) => {
+          const msgs = snap.val();
+          let latestValidMsg = null;
+          let unread = 0;
+          const now = Date.now();
+          const lastRead = parseInt(localStorage.getItem(`kalah_read_${chatId}`) || '0', 10);
+
+          if (msgs) {
+            Object.entries(msgs).forEach(([msgId, msg]) => {
+              // Auto-delete expired (>24h) messages from Firebase
+              if (msg.expiresAt && now > msg.expiresAt) {
+                db.ref(`${ROOT_NODE}/chats/${chatId}/messages/${msgId}`).remove();
+                return;
+              }
+              if (!latestValidMsg || msg.timestamp > latestValidMsg.timestamp) {
+                latestValidMsg = msg;
+              }
+              if (msg.sender !== currentUser.phone && msg.timestamp > lastRead) {
+                unread++;
+              }
+            });
+          }
+
+          lastMessagesMap[peerPhone] = latestValidMsg;
+          unreadCounts[peerPhone] = unread;
+          renderChatList();
+        });
+      });
+    }
+
+    // Background 24-Hour Auto-Delete Sweeper
+    function run24HourCleanup() {
+      if (!currentUser) return;
+      const now = Date.now();
+      monitoredChatIds.forEach(chatId => {
+        db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).once('value', (snap) => {
+          const msgs = snap.val();
+          if (!msgs) return;
+          Object.entries(msgs).forEach(([msgId, msg]) => {
+            if (msg.expiresAt && now > msg.expiresAt) {
+              db.ref(`${ROOT_NODE}/chats/${chatId}/messages/${msgId}`).remove();
+            }
+          });
+        });
+      });
+    }
+
+    function setChatFilter(filter) {
+      currentChatFilter = filter;
+      ['all', 'unread', 'friends'].forEach(f => {
+        const el = document.getElementById(`chip-${f}`);
+        if (f === filter) {
+          el.className = 'px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-blue text-white transition shrink-0';
+        } else {
+          el.className = 'px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0';
+        }
+      });
+      renderChatList();
+    }
+
+    function formatShortTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderChatList() {
+      const container = document.getElementById('chat-list-container');
+      const query = (document.getElementById('chat-search-input').value || '').toLowerCase().trim();
+      container.innerHTML = '';
+
+      let peers = Object.values(allUsersMap).filter(u => u.phone !== currentUser.phone);
+
+      // Filter by search query
+      if (query) {
+        peers = peers.filter(u =>
+          (u.name || '').toLowerCase().includes(query) ||
+          (u.phone || '').includes(query)
+        );
+      }
+
+      // Filter by chip
+      if (currentChatFilter === 'unread') {
+        peers = peers.filter(u => (unreadCounts[u.phone] || 0) > 0);
+      } else if (currentChatFilter === 'all' && !query) {
+        // Show friends who have active messages or all friends if < 10
+        const activePeers = peers.filter(u => lastMessagesMap[u.phone]);
+        if (activePeers.length > 0) peers = activePeers;
+      }
+
+      // Sort by latest message timestamp
+      peers.sort((a, b) => {
+        const ta = lastMessagesMap[a.phone]?.timestamp || 0;
+        const tb = lastMessagesMap[b.phone]?.timestamp || 0;
+        return tb - ta;
+      });
+
+      if (peers.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center space-y-3">
+            <div class="w-14 h-14 mx-auto rounded-full bg-kalah-card flex items-center justify-center text-kalah-muted">
+              <i data-lucide="users" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-semibold text-white">No active chats found</p>
+            <p class="text-xs text-kalah-muted">Tap the blue button below to connect with your friends via phone number.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      peers.forEach(peer => {
+        const lastMsg = lastMessagesMap[peer.phone];
+        const unread = unreadCounts[peer.phone] || 0;
+
+        let previewText = peer.bio || peer.phone;
+        let checkIcon = '';
+        if (lastMsg) {
+          if (lastMsg.sender === currentUser.phone) {
+            checkIcon = `<i data-lucide="check-check" class="w-3.5 h-3.5 text-blue-400 inline mr-1 shrink-0"></i>`;
+          }
+          if (lastMsg.type === 'text') previewText = lastMsg.content;
+          else if (lastMsg.type === 'image') previewText = '📷 Photo';
+          else if (lastMsg.type === 'video') previewText = '🎥 Video';
+          else if (lastMsg.type === 'voice') previewText = '🎤 Voice message';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'px-4 py-3.5 flex items-center gap-3.5 hover:bg-kalah-surface/80 active:bg-kalah-card cursor-pointer transition';
+        row.onclick = () => openFriendChat(peer);
+
+        row.innerHTML = `
+          <div class="relative shrink-0">
+            <img src="${peer.avatar || getDefaultAvatar(peer.name)}" alt="${peer.name}" class="w-[52px] h-[52px] rounded-full object-cover bg-kalah-card border border-kalah-border" />
+            ${peer.online ? '<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-kalah-bg"></span>' : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-[15px] text-white truncate">${peer.name}</h3>
+              <span class="text-[11px] ${unread > 0 ? 'text-blue-400 font-bold' : 'text-kalah-muted'}">${lastMsg ? formatShortTime(lastMsg.timestamp) : ''}</span>
+            </div>
+            <div class="flex items-center justify-between mt-0.5 gap-2">
+              <p class="text-xs text-kalah-muted truncate flex items-center">${checkIcon}${escapeHtml(previewText)}</p>
+              ${unread > 0 ? `<span class="px-2 py-0.5 text-[10px] font-bold bg-kalah-blueBright text-white rounded-full shrink-0">${unread}</span>` : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    // ==================== FRIENDS DIRECTORY MODAL ====================
+    function openFriendsModal() {
+      document.getElementById('friends-modal').classList.remove('hidden');
+      renderDirectoryList();
+    }
+
+    function closeFriendsModal() {
+      document.getElementById('friends-modal').classList.add('hidden');
+    }
+
+    function renderDirectoryList() {
+      const container = document.getElementById('directory-list-container');
+      const query = (document.getElementById('directory-search-input').value || '').toLowerCase().trim();
+      container.innerHTML = '';
+
+      const peers = Object.values(allUsersMap).filter(u =>
+        u.phone !== currentUser.phone &&
+        ((u.name || '').toLowerCase().includes(query) || (u.phone || '').includes(query))
+      );
+
+      if (peers.length === 0) {
+        container.innerHTML = `<p class="text-center text-xs text-kalah-muted py-6">No registered friends match "${escapeHtml(query)}". Share this app so they can register!</p>`;
+        return;
+      }
+
+      peers.forEach(peer => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-2xl bg-kalah-card/70 hover:bg-kalah-card border border-kalah-border/50 flex items-center justify-between gap-3 cursor-pointer transition';
+        item.onclick = () => {
+          closeFriendsModal();
+          openFriendChat(peer);
+        };
+        item.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-11 h-11 rounded-full object-cover bg-kalah-surface shrink-0" />
+            <div class="min-w-0">
+              <h4 class="font-bold text-sm text-white truncate">${peer.name}</h4>
+              <p class="text-xs text-blue-400 font-medium">${peer.phone}</p>
+            </div>
+          </div>
+          <span class="px-3 py-1.5 rounded-xl bg-kalah-blue text-xs font-semibold text-white shrink-0">Chat</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // ==================== OPEN FRIEND CHAT ROOM ====================
+    function openFriendChat(peer) {
+      activeChatPeer = peer;
+      const room = document.getElementById('chat-room');
+      room.classList.remove('hidden');
+
+      document.getElementById('room-avatar').classList.remove('hidden');
+      document.getElementById('room-ai-avatar').classList.add('hidden');
+      document.getElementById('room-call-actions').classList.remove('hidden');
+      document.getElementById('attach-media-btn').classList.remove('hidden');
+      document.getElementById('mic-record-btn').classList.remove('hidden');
+
+      document.getElementById('room-avatar').src = peer.avatar || getDefaultAvatar(peer.name);
+      document.getElementById('room-name').textContent = peer.name;
+      document.getElementById('room-status').textContent = peer.online ? 'Online' : `Phone: ${peer.phone}`;
+
+      const chatId = getChatId(currentUser.phone, peer.phone);
+      localStorage.setItem(`kalah_read_${chatId}`, Date.now().toString());
+      unreadCounts[peer.phone] = 0;
+      renderChatList();
+
+      if (activeChatListener) {
+        activeChatListener.off();
+      }
+
+      const msgContainer = document.getElementById('messages-container');
+      activeChatListener = db.ref(`${ROOT_NODE}/chats/${chatId}/messages`);
+      activeChatListener.on('value', (snap) => {
+        const msgs = snap.val() || {};
+        const now = Date.now();
+        localStorage.setItem(`kalah_read_${chatId}`, now.toString());
+
+        // Clear existing messages except top notice
+        msgContainer.innerHTML = `
+          <div class="flex justify-center my-2">
+            <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
+              🔒 Messages, photos, videos & voice notes vanish after 24 hours.
+            </span>
+          </div>
+        `;
+
+        const sortedEntries = Object.entries(msgs).sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+        sortedEntries.forEach(([msgId, msg]) => {
+          // Enforce 24h auto-delete
+          if (msg.expiresAt && now > msg.expiresAt) {
+            db.ref(`${ROOT_NODE}/chats/${chatId}/messages/${msgId}`).remove();
+            return;
+          }
+          appendMessageBubble(msg, msg.sender === currentUser.phone);
+        });
+
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      });
+    }
+
+    function closeChatRoom() {
+      if (activeChatListener) {
+        activeChatListener.off();
+        activeChatListener = null;
+      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        cancelVoiceRecording();
+      }
+      activeChatPeer = null;
+      document.getElementById('chat-room').classList.add('hidden');
+    }
+
+    function toggleMicSendBtn() {
+      const val = document.getElementById('message-text-input').value.trim();
+      const micBtn = document.getElementById('mic-record-btn');
+      const sendBtn = document.getElementById('send-text-btn');
+
+      if (activeChatPeer === 'KALAH_AI') {
+        micBtn.classList.add('hidden');
+        sendBtn.classList.remove('hidden');
+        return;
+      }
+
+      if (val.length > 0) {
+        micBtn.classList.add('hidden');
+        sendBtn.classList.remove('hidden');
+      } else {
+        micBtn.classList.remove('hidden');
+        sendBtn.classList.add('hidden');
+      }
+    }
+
+    // Render Single Message Bubble
+    function appendMessageBubble(msg, isMine) {
+      const container = document.getElementById('messages-container');
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex ${isMine ? 'justify-end' : 'justify-start'}`;
+
+      const bubbleClass = isMine
+        ? 'bg-kalah-sent text-white bubble-sent border border-blue-400/20'
+        : 'bg-kalah-received text-white bubble-received border border-kalah-border';
+
+      let bodyHtml = '';
+      if (msg.type === 'text') {
+        bodyHtml = `<p class="text-[14px] leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg.content)}</p>`;
+      } else if (msg.type === 'image') {
+        bodyHtml = `
+          <div class="space-y-1">
+            <img src="${msg.content}" alt="Photo" class="rounded-xl max-h-64 w-auto object-contain bg-black/30 cursor-pointer" onclick="window.open(this.src, '_blank')" />
+          </div>
+        `;
+      } else if (msg.type === 'video') {
+        bodyHtml = `
+          <div class="space-y-1">
+            <video src="${msg.content}" controls playsinline class="rounded-xl max-h-64 w-full bg-black"></video>
+          </div>
+        `;
+      } else if (msg.type === 'voice') {
+        bodyHtml = `
+          <div class="flex items-center gap-2.5 min-w-[200px] py-1">
+            <div class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <i data-lucide="mic" class="w-4 h-4 text-white"></i>
+            </div>
+            <audio src="${msg.content}" controls class="h-8 w-44 max-w-full"></audio>
+          </div>
+        `;
+      }
+
+      wrapper.innerHTML = `
+        <div class="max-w-[80%] px-3.5 py-2 shadow-md ${bubbleClass}">
+          ${bodyHtml}
+          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] ${isMine ? 'text-blue-200/80' : 'text-kalah-muted'}">
+            <span>${formatShortTime(msg.timestamp)}</span>
+            ${isMine ? '<i data-lucide="check-check" class="w-3 h-3 text-cyan-300"></i>' : ''}
+          </div>
+        </div>
+      `;
+      container.appendChild(wrapper);
+      lucide.createIcons();
+    }
+
+    // Send Text Message
+    async function sendTextMessage() {
+      const input = document.getElementById('message-text-input');
+      const text = input.value.trim();
+      if (!text || !activeChatPeer) return;
+
+      input.value = '';
+      toggleMicSendBtn();
+
+      if (activeChatPeer === 'KALAH_AI') {
+        await handleSendToKalahAI(text);
+        return;
+      }
+
+      const chatId = getChatId(currentUser.phone, activeChatPeer.phone);
+      const now = Date.now();
+      await db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).push({
+        sender: currentUser.phone,
+        type: 'text',
+        content: text,
+        timestamp: now,
+        expiresAt: now + TWENTY_FOUR_HOURS_MS
+      });
+    }
+
+    // ==================== PHOTO & VIDEO UPLOAD (< 7MB LIMIT) ====================
+    function handleMediaUpload(event) {
+      const file = event.target.files[0];
+      event.target.value = ''; // Reset input
+      if (!file || !activeChatPeer || activeChatPeer === 'KALAH_AI') return;
+
+      // Strict 7MB Check
+      if (file.size > MAX_MEDIA_BYTES) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        showToast(`File too large (${sizeMB}MB)! Max allowed size is 7MB.`, 'error');
+        return;
+      }
+
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (!isImage && !isVideo) {
+        showToast('Only Photos and Videos are supported!', 'error');
+        return;
+      }
+
+      showToast(`Sending ${isImage ? 'photo' : 'video'}...`, 'info');
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target.result;
+        const chatId = getChatId(currentUser.phone, activeChatPeer.phone);
+        const now = Date.now();
+
+        try {
+          await db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).push({
+            sender: currentUser.phone,
+            type: isImage ? 'image' : 'video',
+            content: base64Data,
+            fileName: file.name,
+            timestamp: now,
+            expiresAt: now + TWENTY_FOUR_HOURS_MS
+          });
+          showToast(`${isImage ? 'Photo' : 'Video'} sent! (Auto-deletes in 24h)`, 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to send media. Try a smaller file.', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ==================== VOICE NOTE RECORDING (< 1MB LIMIT) ====================
+    async function startVoiceRecording() {
+      if (!activeChatPeer || activeChatPeer === 'KALAH_AI') return;
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        recordSeconds = 0;
+
+        // Low bitrate (24kbps) keeps voice crisp and well under 1MB even for ~4 mins
+        const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 24000 }
+          : { audioBitsPerSecond: 24000 };
+
+        mediaRecorder = new MediaRecorder(stream, options);
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunks.push(e.data);
+            const totalBytes = audioChunks.reduce((acc, chunk) => acc + chunk.size, 0);
+            // Enforce strict 1MB limit
+            if (totalBytes >= MAX_VOICE_BYTES * 0.95) {
+              showToast('1MB voice limit reached! Sending note...', 'info');
+              stopAndSendVoice();
+            }
+          }
+        };
+
+        mediaRecorder.start(500);
+        document.getElementById('chat-input-bar').classList.add('hidden');
+        document.getElementById('recording-bar').classList.remove('hidden');
+        document.getElementById('record-timer').textContent = '00:00';
+
+        recordInterval = setInterval(() => {
+          recordSeconds++;
+          const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+          const secs = String(recordSeconds % 60).padStart(2, '0');
+          document.getElementById('record-timer').textContent = `${mins}:${secs}`;
+        }, 1000);
+      } catch (err) {
+        console.error(err);
+        showToast('Microphone permission denied!', 'error');
+      }
+    }
+
+    function cancelVoiceRecording() {
+      clearInterval(recordInterval);
+      if (mediaRecorder) {
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      }
+      audioChunks = [];
+      document.getElementById('recording-bar').classList.add('hidden');
+      document.getElementById('chat-input-bar').classList.remove('hidden');
+    }
+
+    function stopAndSendVoice() {
+      clearInterval(recordInterval);
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+
+      const targetPeer = activeChatPeer;
+      mediaRecorder.onstop = () => {
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+
+        if (blob.size > MAX_VOICE_BYTES) {
+          showToast('Voice note exceeded 1MB limit!', 'error');
+          return;
+        }
+        if (blob.size < 500) {
+          showToast('Voice note too short!', 'error');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const chatId = getChatId(currentUser.phone, targetPeer.phone);
+          const now = Date.now();
+          await db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).push({
+            sender: currentUser.phone,
+            type: 'voice',
+            content: reader.result,
+            timestamp: now,
+            expiresAt: now + TWENTY_FOUR_HOURS_MS
+          });
+          showToast('Voice message sent!', 'success');
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      mediaRecorder.stop();
+      document.getElementById('recording-bar').classList.add('hidden');
+      document.getElementById('chat-input-bar').classList.remove('hidden');
+    }
+
+    // ==================== WHATSAPP-STYLE REAL-TIME VOICE CALL (WEBRTC) ====================
+    async function startVoiceCall() {
+      if (!activeChatPeer || activeChatPeer === 'KALAH_AI') return;
+
+      const peer = activeChatPeer;
+      const callId = `${currentUser.phone}_${Date.now()}`;
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (err) {
+        showToast('Microphone access required to make a call!', 'error');
+        return;
+      }
+
+      // Show Outgoing Call Screen
+      openCallUI(peer.name, peer.phone, peer.avatar || getDefaultAvatar(peer.name), 'Calling...', false);
+      logCallRecord(peer.name, peer.phone, 'Outgoing');
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = (event) => {
+        const remoteAudio = document.getElementById('remote-audio');
+        if (remoteAudio.srcObject !== event.streams[0]) {
+          remoteAudio.srcObject = event.streams[0];
+        }
+      };
+
+      const callRef = db.ref(`${ROOT_NODE}/calls/${peer.phone}/${callId}`);
+      activeCallData = { ref: callRef, peerPhone: peer.phone, callId };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          callRef.child('callerCandidates').push(event.candidate.toJSON());
+        }
+      };
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      await callRef.set({
+        callerPhone: currentUser.phone,
+        callerName: currentUser.name,
+        callerAvatar: currentUser.avatar || '',
+        offer: { type: offer.type, sdp: offer.sdp },
+        status: 'ringing',
+        timestamp: Date.now()
+      });
+
+      // Listen for Answer or Hangup
+      callRef.on('value', async (snap) => {
+        const data = snap.val();
+        if (!data) {
+          cleanupCallUI();
+          return;
+        }
+        if (data.status === 'declined' || data.status === 'ended') {
+          showToast(`Call ${data.status}`, 'info');
+          cleanupCallUI();
+          return;
+        }
+        if (data.answer && !peerConnection.currentRemoteDescription) {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+          startConnectedCallTimer();
+        }
+      });
+
+      callRef.child('calleeCandidates').on('child_added', (snap) => {
+        const cand = snap.val();
+        if (cand && peerConnection) {
+          peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        }
+      });
+    }
+
+    function listenForIncomingCalls() {
+      db.ref(`${ROOT_NODE}/calls/${currentUser.phone}`).on('child_added', (snap) => {
+        const callData = snap.val();
+        const callId = snap.key;
+        if (!callData || callData.status !== 'ringing') return;
+        // Ignore stale calls older than 45 seconds
+        if (Date.now() - callData.timestamp > 45000) return;
+
+        activeCallData = {
+          ref: db.ref(`${ROOT_NODE}/calls/${currentUser.phone}/${callId}`),
+          data: callData,
+          callId
+        };
+
+        logCallRecord(callData.callerName, callData.callerPhone, 'Incoming');
+        openCallUI(
+          callData.callerName,
+          callData.callerPhone,
+          callData.callerAvatar || getDefaultAvatar(callData.callerName),
+          'Incoming Kalah Voice Call...',
+          true
+        );
+
+        // Watch if caller cancels
+        activeCallData.ref.on('value', (s) => {
+          const val = s.val();
+          if (!val || val.status === 'ended') {
+            cleanupCallUI();
+          }
+        });
+      });
+    }
+
+    async function acceptIncomingCall() {
+      if (!activeCallData || !activeCallData.data) return;
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (err) {
+        showToast('Microphone permission required!', 'error');
+        declineIncomingCall();
+        return;
+      }
+
+      document.getElementById('incoming-call-controls').classList.add('hidden');
+      document.getElementById('active-call-controls').classList.remove('hidden');
+
+      peerConnection = new RTCPeerConnection(rtcConfig);
+      localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+      peerConnection.ontrack = (event) => {
+        const remoteAudio = document.getElementById('remote-audio');
+        if (remoteAudio.srcObject !== event.streams[0]) {
+          remoteAudio.srcObject = event.streams[0];
+        }
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate) {
+          activeCallData.ref.child('calleeCandidates').push(event.candidate.toJSON());
+        }
+      };
+
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(activeCallData.data.offer));
+      const answer = await peerConnection.createAnswer();
+      await peerConnection.setLocalDescription(answer);
+
+      await activeCallData.ref.update({
+        answer: { type: answer.type, sdp: answer.sdp },
+        status: 'connected'
+      });
+
+      activeCallData.ref.child('callerCandidates').on('child_added', (snap) => {
+        const cand = snap.val();
+        if (cand && peerConnection) {
+          peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+        }
+      });
+
+      startConnectedCallTimer();
+    }
+
+    function declineIncomingCall() {
+      if (activeCallData && activeCallData.ref) {
+        activeCallData.ref.update({ status: 'declined' });
+      }
+      cleanupCallUI();
+    }
+
+    function endCurrentCall() {
+      if (activeCallData && activeCallData.ref) {
+        activeCallData.ref.update({ status: 'ended' });
+        setTimeout(() => activeCallData?.ref?.remove(), 2000);
+      }
+      cleanupCallUI();
+    }
+
+    function openCallUI(name, phone, avatar, statusText, isIncoming) {
+      document.getElementById('call-overlay').classList.remove('hidden');
+      document.getElementById('call-peer-name').textContent = name;
+      document.getElementById('call-peer-phone').textContent = phone;
+      document.getElementById('call-peer-avatar').src = avatar;
+      document.getElementById('call-status-text').textContent = statusText;
+      document.getElementById('call-pulse-ring').classList.remove('hidden');
+
+      if (isIncoming) {
+        document.getElementById('incoming-call-controls').classList.remove('hidden');
+        document.getElementById('active-call-controls').classList.add('hidden');
+      } else {
+        document.getElementById('incoming-call-controls').classList.add('hidden');
+        document.getElementById('active-call-controls').classList.remove('hidden');
+      }
+    }
+
+    function startConnectedCallTimer() {
+      clearInterval(callTimerInterval);
+      callSeconds = 0;
+      document.getElementById('call-pulse-ring').classList.add('hidden');
+      document.getElementById('call-status-text').textContent = '00:00';
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('call-status-text').textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function toggleCallMute() {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks().forEach(t => (t.enabled = !isMuted));
+      const btn = document.getElementById('btn-call-mute');
+      btn.className = isMuted
+        ? 'p-3.5 rounded-full bg-white text-kalah-bg transition'
+        : 'p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition';
+      showToast(isMuted ? 'Microphone Muted' : 'Microphone Unmuted', 'info');
+    }
+
+    function toggleCallSpeaker() {
+      isSpeaker = !isSpeaker;
+      const audioEl = document.getElementById('remote-audio');
+      audioEl.volume = isSpeaker ? 1.0 : 0.4;
+      const btn = document.getElementById('btn-call-speaker');
+      btn.className = isSpeaker
+        ? 'p-3.5 rounded-full bg-kalah-blue text-white transition'
+        : 'p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition';
+      showToast(isSpeaker ? 'Speaker On' : 'Earpiece Volume', 'info');
+    }
+
+    function cleanupCallUI() {
+      clearInterval(callTimerInterval);
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      if (activeCallData && activeCallData.ref) {
+        activeCallData.ref.off();
+      }
+      activeCallData = null;
+      isMuted = false;
+      document.getElementById('call-overlay').classList.add('hidden');
+    }
+
+    function logCallRecord(name, phone, direction) {
+      try {
+        const logs = JSON.parse(localStorage.getItem('kalah_call_logs') || '[]');
+        logs.unshift({ name, phone, direction, timestamp: Date.now() });
+        localStorage.setItem('kalah_call_logs', JSON.stringify(logs.slice(0, 30)));
+        renderCallHistory();
+      } catch (e) {}
+    }
+
+    function renderCallHistory() {
+      const container = document.getElementById('calls-list-container');
+      const logs = JSON.parse(localStorage.getItem('kalah_call_logs') || '[]');
+      if (logs.length === 0) {
+        container.innerHTML = `<div class="text-center py-10 text-xs text-kalah-muted">No recent calls yet. Tap a friend to start a voice call!</div>`;
+        return;
+      }
+      container.innerHTML = logs.map(log => `
+        <div class="p-3.5 rounded-2xl bg-kalah-surface border border-kalah-border/60 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-kalah-card flex items-center justify-center text-blue-400">
+              <i data-lucide="${log.direction === 'Incoming' ? 'phone-incoming' : 'phone-outgoing'}" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h4 class="font-bold text-sm text-white">${escapeHtml(log.name)}</h4>
+              <p class="text-[11px] text-kalah-muted">${log.direction} • ${formatShortTime(log.timestamp)}</p>
+            </div>
+          </div>
+          <button onclick="quickCallByPhone('${log.phone}')" class="p-2.5 rounded-full bg-kalah-card hover:bg-kalah-blue text-blue-400 hover:text-white transition">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function quickCallByPhone(phone) {
+      const peer = allUsersMap[phone];
+      if (!peer) {
+        showToast('Friend not found online', 'error');
+        return;
+      }
+      openFriendChat(peer);
+      startVoiceCall();
+    }
+
+    // ==================== KALAH AI CHAT (GITHUB-SAFE HIDDEN KEY) ====================
+    function fetchHiddenGeminiKey() {
+      // Fetches key from Firebase RTDB path so it's never exposed in GitHub code
+      db.ref(`${ROOT_NODE}/config/gemini_key`).on('value', (snap) => {
+        const val = snap.val();
+        if (val && typeof val === 'string' && val.trim().length > 10) {
+          remoteGeminiKey = val.trim();
+        }
+        updateAIKeyStatusBadge();
+      });
+
+      const localKey = localStorage.getItem('kalah_local_gemini_key') || '';
+      if (localKey) {
+        document.getElementById('local-gemini-key-input').value = localKey;
+      }
+      updateAIKeyStatusBadge();
+    }
+
+    function saveLocalGeminiKey() {
+      const val = document.getElementById('local-gemini-key-input').value.trim();
+      localStorage.setItem('kalah_local_gemini_key', val);
+      updateAIKeyStatusBadge();
+      showToast('Local Gemini API Key saved!', 'success');
+    }
+
+    function getActiveGeminiKey() {
+      return localStorage.getItem('kalah_local_gemini_key')?.trim() || remoteGeminiKey || '';
+    }
+
+    function updateAIKeyStatusBadge() {
+      const badge = document.getElementById('ai-key-status-badge');
+      const activeKey = getActiveGeminiKey();
+      if (activeKey) {
+        badge.textContent = 'Connected ✓';
+        badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300';
+      } else {
+        badge.textContent = 'Key Not Set';
+        badge.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300';
+      }
+    }
+
+    function openAIChat() {
+      activeChatPeer = 'KALAH_AI';
+      const room = document.getElementById('chat-room');
+      room.classList.remove('hidden');
+
+      document.getElementById('room-avatar').classList.add('hidden');
+      document.getElementById('room-ai-avatar').classList.remove('hidden');
+      document.getElementById('room-call-actions').classList.add('hidden');
+      document.getElementById('attach-media-btn').classList.add('hidden');
+      document.getElementById('mic-record-btn').classList.add('hidden');
+      document.getElementById('send-text-btn').classList.remove('hidden');
+
+      document.getElementById('room-name').textContent = 'Kalah AI Assistant';
+      document.getElementById('room-status').textContent = 'Always Active • Powered by Gemini';
+
+      renderAIMessages();
+    }
+
+    function renderAIMessages() {
+      const container = document.getElementById('messages-container');
+      container.innerHTML = `
+        <div class="flex justify-center my-2">
+          <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-blue-500/30 text-[11px] text-blue-300 text-center shadow">
+            ✨ Kalah AI • Ask anything in Sinhala or English!
+          </span>
+        </div>
+      `;
+
+      if (aiChatHistory.length === 0) {
+        appendMessageBubble({
+          type: 'text',
+          content: `ආයුබෝවන් ${currentUser?.name || 'යාළුවා'}! 👋 මම Kalah AI. ඔයාට මොනවද දැනගන්න ඕනෙ?`,
+          timestamp: Date.now()
+        }, false);
+      } else {
+        aiChatHistory.forEach(item => {
+          appendMessageBubble({
+            type: 'text',
+            content: item.text,
+            timestamp: item.timestamp
+          }, item.role === 'user');
+        });
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function handleSendToKalahAI(userText) {
+      const now = Date.now();
+      aiChatHistory.push({ role: 'user', text: userText, timestamp: now });
+      renderAIMessages();
+
+      const apiKey = getActiveGeminiKey();
+      if (!apiKey) {
+        const helpMsg = "⚠️ Gemini API Key එක තාම සෙට් කරලා නෑ. GitHub එකේ Key එක හංගන්න, ඔයාගේ Firebase Realtime Database එකේ `kalah_messenger_v2/config/gemini_key` කියන තැනට Key එක දාන්න, නැත්නම් Profile > Kalah AI Key තැනින් Key එක සේව් කරන්න.";
+        aiChatHistory.push({ role: 'model', text: helpMsg, timestamp: Date.now() });
+        renderAIMessages();
+        return;
+      }
+
+      // Show typing indicator bubble
+      const container = document.getElementById('messages-container');
+      const typingDiv = document.createElement('div');
+      typingDiv.id = 'ai-typing-indicator';
+      typingDiv.className = 'flex justify-start';
+      typingDiv.innerHTML = `<div class="px-4 py-2.5 bg-kalah-received border border-kalah-border bubble-received text-xs text-blue-300 animate-pulse">Kalah AI is thinking...</div>`;
+      container.appendChild(typingDiv);
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const contents = aiChatHistory.slice(-10).map(m => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          parts: [{ text: m.text }]
+        }));
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are Kalah AI, a friendly, smart assistant inside Kalah Chat messenger. Reply concisely and naturally in Sinhala or English matching the user's language." }]
+            },
+            contents
+          })
+        });
+
+        const data = await response.json();
+        document.getElementById('ai-typing-indicator')?.remove();
+
+        if (data.error) {
+          throw new Error(data.error.message || 'API Error');
+        }
+
+        const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not generate a response.';
+        aiChatHistory.push({ role: 'model', text: replyText, timestamp: Date.now() });
+        localStorage.setItem('kalah_ai_history', JSON.stringify(aiChatHistory.slice(-30)));
+        document.getElementById('ai-last-preview').textContent = replyText;
+        renderAIMessages();
+      } catch (err) {
+        document.getElementById('ai-typing-indicator')?.remove();
+        aiChatHistory.push({
+          role: 'model',
+          text: `❌ AI Error: ${err.message}. Check your Gemini API key in Firebase or Profile settings.`,
+          timestamp: Date.now()
+        });
+        renderAIMessages();
+      }
+    }
+
+    // Security HTML Escaper
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+  </html>
