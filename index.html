@@ -4,19 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Kalah Chat</title>
-  
-  <!-- Tailwind CSS -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Inter & Noto Sans Sinhala -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-
-  <!-- Firebase App & Realtime Database Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
@@ -109,8 +102,45 @@
 </head>
 <body class="bg-kalah-bg text-white select-none">
 
-  <!-- ==================== GLOBAL TOAST NOTIFICATION ==================== -->
-  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none w-[92%] max-w-sm"></div>
+  <!-- ==================== GLOBAL TOAST & IN-APP NOTIFICATION BANNER ==================== -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[120] flex flex-col items-center gap-2 pointer-events-none w-[92%] max-w-sm"></div>
+
+  <div id="inapp-notify-banner" onclick="handleNotifyBannerClick()" class="fixed top-3 left-1/2 -translate-x-1/2 z-[110] w-[92%] max-w-md bg-kalah-surface/95 backdrop-blur-md border border-kalah-blueBright/60 rounded-2xl p-3 shadow-2xl flex items-center gap-3 cursor-pointer hidden transition">
+    <div class="w-10 h-10 rounded-full bg-kalah-blue/25 border border-blue-400/40 flex items-center justify-center shrink-0">
+      <i id="notify-banner-icon" data-lucide="bell-ring" class="w-5 h-5 text-blue-400"></i>
+    </div>
+    <div class="flex-1 min-w-0">
+      <p id="notify-banner-title" class="text-xs font-extrabold text-white truncate">New Notification</p>
+      <p id="notify-banner-body" class="text-[11px] text-kalah-muted truncate">Message preview</p>
+    </div>
+    <button onclick="event.stopPropagation(); hideNotifyBanner();" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+  <!-- ==================== 0. 1.618 GATE LOCK SCREEN ==================== -->
+  <div id="gate-lock-screen" class="fixed inset-0 z-[90] bg-kalah-bg flex flex-col justify-between p-6 overflow-y-auto">
+    <div class="max-w-md w-full mx-auto my-auto space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-kalah-blueBright to-blue-950 flex items-center justify-center shadow-lg shadow-blue-600/30 border border-blue-400/30">
+          <i data-lucide="key-round" class="w-10 h-10 text-blue-300"></i>
+        </div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-white">Kalah Vault Access</h1>
+        <p class="text-xs text-kalah-muted">Type the exact unlock key to open Kalah Chat</p>
+      </div>
+
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-6 shadow-2xl space-y-4">
+        <div class="space-y-1.5">
+          <label class="text-[11px] font-semibold text-kalah-muted uppercase tracking-wider">Unlock Lock</label>
+          <input id="gate-lock-input" type="text" inputmode="decimal" onkeydown="if(event.key==='Enter') submitGateLock()" placeholder="Type 1.618" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl px-4 py-3.5 text-center text-lg font-extrabold tracking-widest text-white placeholder-kalah-muted/50 outline-none" />
+        </div>
+        <button onclick="submitGateLock()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition">
+          Unlock Kalah Chat
+        </button>
+      </div>
+    </div>
+    <p class="text-center text-[11px] text-kalah-muted/60">φ • Kalah Private Node</p>
+  </div>
 
   <!-- ==================== 1. AUTH / PROFILE SETUP SCREEN ==================== -->
   <div id="auth-screen" class="fixed inset-0 z-50 bg-kalah-bg flex flex-col justify-between p-6 overflow-y-auto hidden">
@@ -186,25 +216,28 @@
   <!-- ==================== 2. MAIN APP SHELL ==================== -->
   <div id="main-app" class="h-[100dvh] w-full max-w-lg mx-auto bg-kalah-bg flex flex-col relative hidden border-x border-kalah-border/40">
 
-    <!-- TOP HEADER (Clean single right menu button) -->
+    <!-- TOP HEADER -->
     <header id="main-header" class="bg-kalah-surface px-4 pt-4 pb-3 border-b border-kalah-border/60 shrink-0 z-20">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-2">
           <h1 class="text-[22px] font-extrabold tracking-tight text-white">Kalah Chat</h1>
           <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-kalah-blue/20 text-blue-400 border border-blue-500/30">24H</span>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5">
+          <button onclick="shareAppLink()" title="Share Link" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-400 border border-kalah-border transition">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+          </button>
           <button onclick="openCreateGroupModal()" title="New Group" class="px-3 py-1.5 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-400 text-xs font-bold border border-kalah-border transition flex items-center gap-1">
             <i data-lucide="users" class="w-3.5 h-3.5"></i>
             <span>+ Group</span>
           </button>
-          <button onclick="switchMainTab('profile')" title="Profile" class="p-2.5 rounded-full hover:bg-kalah-card text-white transition">
+          <button onclick="switchMainTab('profile')" title="Profile" class="p-2 rounded-full hover:bg-kalah-card text-white transition">
             <i data-lucide="more-vertical" class="w-5 h-5"></i>
           </button>
         </div>
       </div>
 
-      <!-- Search Bar & Filter Chips (Shown on Chats Tab) -->
+      <!-- Search Bar & Filter Chips -->
       <div id="header-search-wrap" class="mt-3">
         <div class="relative flex items-center">
           <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-4 pointer-events-none"></i>
@@ -224,9 +257,9 @@
     <main id="view-chats" class="flex-1 overflow-y-auto divide-y divide-kalah-border/30 pb-24">
       <div class="px-4 py-2 bg-kalah-surface/60 flex items-center justify-between text-[11px] text-kalah-muted border-b border-kalah-border/40">
         <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i> Chats & groups auto-delete after 24h</span>
-        <span id="online-status-pill" class="text-emerald-400 font-medium flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online
-        </span>
+        <button onclick="enableBrowserNotifications()" id="notify-perm-btn" class="text-blue-400 font-semibold hover:underline flex items-center gap-1">
+          <i data-lucide="bell" class="w-3 h-3"></i> Alerts On
+        </button>
       </div>
 
       <!-- Pinned Kalah AI Chat Item -->
@@ -253,7 +286,6 @@
         </div>
       </div>
 
-      <!-- Dynamic Groups & Friends Chat List -->
       <div id="chat-list-container" class="divide-y divide-kalah-border/30"></div>
     </main>
 
@@ -268,7 +300,7 @@
       <div id="calls-list-container" class="space-y-2"></div>
     </main>
 
-    <!-- TAB 3: PROFILE (No API Key Add UI shown) -->
+    <!-- TAB 3: PROFILE -->
     <main id="view-profile" class="flex-1 overflow-y-auto p-4 pb-24 hidden space-y-5">
       <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-5 flex flex-col items-center text-center space-y-3">
         <label for="edit-avatar-input" class="relative cursor-pointer group">
@@ -299,7 +331,16 @@
         </div>
       </div>
 
+      <button onclick="shareAppLink()" class="w-full py-3 rounded-2xl bg-kalah-surface border border-kalah-border hover:bg-kalah-card text-blue-300 font-bold text-sm transition flex items-center justify-center gap-2">
+        <i data-lucide="share-2" class="w-4 h-4"></i>
+        <span>Share Kalah Chat Link</span>
+      </button>
+
       <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-2 text-xs text-kalah-muted">
+        <div class="flex justify-between">
+          <span>Vault Lock:</span>
+          <span class="text-blue-400 font-semibold">1.618</span>
+        </div>
         <div class="flex justify-between">
           <span>Auto-Delete Timer:</span>
           <span class="text-white font-semibold">24 Hours</span>
@@ -320,7 +361,7 @@
       </button>
     </main>
 
-    <!-- SINGLE FLOATING ACTION BUTTON (New Chat / Find Friends) -->
+    <!-- SINGLE FLOATING ACTION BUTTON -->
     <button id="fab-new-chat" onclick="openFriendsModal()" class="fixed bottom-24 right-5 z-20 w-14 h-14 rounded-2xl bg-gradient-to-br from-kalah-blueBright to-blue-700 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center hover:scale-105 active:scale-95 transition border border-blue-400/30">
       <i data-lucide="message-square-plus" class="w-6 h-6"></i>
     </button>
@@ -356,10 +397,10 @@
       </button>
     </nav>
 
-    <!-- ==================== 3. ACTIVE CHAT ROOM OVERLAY (DM, GROUP & AI) ==================== -->
+    <!-- ==================== 3. ACTIVE CHAT ROOM OVERLAY ==================== -->
     <div id="chat-room" class="fixed inset-0 z-30 max-w-lg mx-auto bg-kalah-bg flex flex-col hidden">
       <div class="bg-kalah-surface px-3 py-3 border-b border-kalah-border flex items-center justify-between shrink-0 shadow-md">
-        <div class="flex items-center gap-2.5 min-w-0">
+        <div class="flex items-center gap-2 min-w-0">
           <button onclick="closeChatRoom()" class="p-2 rounded-full hover:bg-kalah-card text-white transition shrink-0">
             <i data-lucide="arrow-left" class="w-5 h-5"></i>
           </button>
@@ -373,8 +414,11 @@
           </div>
         </div>
 
-        <div id="room-call-actions" class="flex items-center gap-1 shrink-0">
-          <button onclick="startVoiceCall()" title="Voice Call" class="p-2.5 rounded-full bg-kalah-card hover:bg-kalah-blue text-white transition border border-kalah-border">
+        <div id="room-action-buttons" class="flex items-center gap-1 shrink-0">
+          <button id="room-game-btn" onclick="openInChatGame()" title="Play Mini Game" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-300 transition border border-kalah-border">
+            <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+          </button>
+          <button id="room-call-btn" onclick="startVoiceCall()" title="Voice Call" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-blue text-white transition border border-kalah-border">
             <i data-lucide="phone" class="w-4 h-4"></i>
           </button>
         </div>
@@ -383,25 +427,37 @@
       <div id="messages-container" class="flex-1 overflow-y-auto p-3.5 space-y-2.5 chat-wallpaper">
         <div class="flex justify-center my-2">
           <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
-            🔒 Messages, photos, videos & voice notes vanish after 24 hours.
+            🔒 Messages vanish after 24h • Tap any message to React, Reply or Delete
           </span>
         </div>
       </div>
 
+      <!-- Reply Preview Bar -->
+      <div id="reply-preview-bar" class="bg-kalah-surface border-t border-kalah-border px-3.5 py-2 flex items-center justify-between gap-2 hidden">
+        <div class="border-l-2 border-kalah-blueBright pl-2.5 min-w-0">
+          <p id="reply-preview-sender" class="text-[11px] font-bold text-blue-400 truncate">Replying to...</p>
+          <p id="reply-preview-text" class="text-xs text-kalah-muted truncate">Message text</p>
+        </div>
+        <button onclick="clearReplyTarget()" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Recording Bar -->
       <div id="recording-bar" class="bg-kalah-surface border-t border-red-500/40 px-4 py-3 flex items-center justify-between hidden">
         <div class="flex items-center gap-2.5">
           <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
           <span class="text-sm font-bold text-white">Recording... <span id="record-timer" class="text-red-400 font-mono">00:00</span></span>
-          <span class="text-[10px] text-kalah-muted">(Max 1MB)</span>
         </div>
         <div class="flex items-center gap-2">
-          <button onclick="cancelVoiceRecording()" class="px-3 py-1.5 rounded-xl bg-kalah-card text-xs font-semibold text-red-400 hover:bg-red-500/20">Cancel</button>
+          <button onclick="cancelVoiceRecording()" class="px-3 py-1.5 rounded-xl bg-kalah-card text-xs font-semibold text-red-400">Cancel</button>
           <button onclick="stopAndSendVoice()" class="px-3.5 py-1.5 rounded-xl bg-kalah-blue text-xs font-bold text-white flex items-center gap-1">
             <i data-lucide="send" class="w-3.5 h-3.5"></i> Send
           </button>
         </div>
       </div>
 
+      <!-- Chat Input Bar -->
       <div id="chat-input-bar" class="bg-kalah-surface px-3 py-2.5 border-t border-kalah-border flex items-end gap-2 shrink-0">
         <button id="attach-media-btn" onclick="document.getElementById('media-file-input').click()" title="Send Photo or Video (<7MB)" class="p-3 rounded-full bg-kalah-card hover:bg-kalah-hover text-kalah-muted hover:text-white transition shrink-0">
           <i data-lucide="paperclip" class="w-5 h-5"></i>
@@ -418,6 +474,80 @@
 
         <button id="send-text-btn" onclick="sendTextMessage()" class="p-3 rounded-full bg-kalah-blueBright hover:bg-blue-500 text-white shadow-md transition shrink-0 hidden">
           <i data-lucide="send" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+    <!-- ==================== 3B. MESSAGE ACTION SHEET (REACT / REPLY / DELETE FOR EVERYONE) ==================== -->
+    <div id="msg-action-modal" onclick="closeMsgActionModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end justify-center hidden">
+      <div onclick="event.stopPropagation()" class="bg-kalah-surface border-t border-kalah-border w-full max-w-lg rounded-t-3xl p-5 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-around bg-kalah-card rounded-2xl py-2.5 px-2 border border-kalah-border/70">
+          <button onclick="reactToSelectedMessage('👍')" class="text-2xl hover:scale-125 transition">👍</button>
+          <button onclick="reactToSelectedMessage('❤️')" class="text-2xl hover:scale-125 transition">❤️</button>
+          <button onclick="reactToSelectedMessage('😂')" class="text-2xl hover:scale-125 transition">😂</button>
+          <button onclick="reactToSelectedMessage('🔥')" class="text-2xl hover:scale-125 transition">🔥</button>
+          <button onclick="reactToSelectedMessage('😮')" class="text-2xl hover:scale-125 transition">😮</button>
+          <button onclick="reactToSelectedMessage('😢')" class="text-2xl hover:scale-125 transition">😢</button>
+        </div>
+
+        <div class="space-y-2">
+          <button onclick="triggerReplySelectedMessage()" class="w-full py-3 px-4 rounded-2xl bg-kalah-card hover:bg-kalah-hover text-white text-sm font-semibold flex items-center gap-3 transition">
+            <i data-lucide="reply" class="w-4 h-4 text-blue-400"></i>
+            <span>Reply to Message</span>
+          </button>
+
+          <button id="btn-delete-everyone" onclick="deleteSelectedMessageForEveryone()" class="w-full py-3 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-sm font-bold flex items-center gap-3 transition hidden">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Delete for Everyone</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3C. IN-CHAT MINI GAME MODAL (BUTTON-PHONE SNAKE / DODGE) ==================== -->
+    <div id="inchat-game-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+              <i data-lucide="gamepad-2" class="w-4 h-4 text-blue-400"></i>
+              <span>Kalah Retro Arcade</span>
+            </h3>
+            <p class="text-[11px] text-kalah-muted">Score: <span id="game-score-val" class="text-blue-400 font-bold">0</span> • Best: <span id="game-best-val" class="text-emerald-400 font-bold">0</span></p>
+          </div>
+          <button onclick="closeInChatGame()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="relative rounded-2xl overflow-hidden border border-kalah-border bg-[#040811] flex justify-center">
+          <canvas id="retro-game-canvas" width="260" height="220" class="block"></canvas>
+        </div>
+
+        <!-- Button-Phone Style Keypad -->
+        <div class="grid grid-cols-3 gap-2 max-w-[190px] mx-auto pt-1">
+          <div></div>
+          <button onclick="setGameDir(0, -1)" class="py-2.5 rounded-xl bg-kalah-card active:bg-kalah-blue text-white font-bold border border-kalah-border flex justify-center">
+            <i data-lucide="chevron-up" class="w-5 h-5"></i>
+          </button>
+          <div></div>
+          <button onclick="setGameDir(-1, 0)" class="py-2.5 rounded-xl bg-kalah-card active:bg-kalah-blue text-white font-bold border border-kalah-border flex justify-center">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <button onclick="restartMiniGame()" class="py-2.5 rounded-xl bg-kalah-blue/20 text-blue-300 text-[11px] font-bold border border-blue-500/30">
+            Reset
+          </button>
+          <button onclick="setGameDir(1, 0)" class="py-2.5 rounded-xl bg-kalah-card active:bg-kalah-blue text-white font-bold border border-kalah-border flex justify-center">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+          <div></div>
+          <button onclick="setGameDir(0, 1)" class="py-2.5 rounded-xl bg-kalah-card active:bg-kalah-blue text-white font-bold border border-kalah-border flex justify-center">
+            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          </button>
+          <div></div>
+        </div>
+
+        <button onclick="shareGameScoreToChat()" class="w-full py-2.5 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-white text-xs font-bold transition">
+          Send Score to Chat
         </button>
       </div>
     </div>
@@ -459,7 +589,7 @@
 
         <div>
           <label class="text-xs font-semibold text-kalah-muted uppercase">Group Name</label>
-          <input id="new-group-name-input" type="text" placeholder="e.g. Kalah Squad / A/L Study" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-2xl px-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+          <input id="new-group-name-input" type="text" placeholder="e.g. Kalah Squad" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-2xl px-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
         </div>
 
         <div class="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -528,7 +658,6 @@
     </div>
 
   </div>
-  <!-- ==================== JAVASCRIPT APPLICATION LOGIC ==================== -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDyVqsqYbsVr0ffvo_lUThdSHR6DlAV-2M",
@@ -545,6 +674,7 @@
     const db = firebase.database();
 
     const ROOT_NODE = 'kalah_messenger_v2';
+    const UNLOCK_CODE = '1.618';
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
     const MAX_MEDIA_BYTES = 7 * 1024 * 1024;
     const MAX_VOICE_BYTES = 1 * 1024 * 1024;
@@ -555,7 +685,7 @@
     let allUsersMap = {};
     let allGroupsMap = {};
     let selectedGroupMembers = new Set();
-    let activeChatPeer = null; // User object, { isGroup: true, ... }, or 'KALAH_AI'
+    let activeChatPeer = null;
     let activeChatListener = null;
     let currentChatFilter = 'all';
     let unreadCounts = {};
@@ -565,6 +695,14 @@
     let aiChatHistory = [];
     let remoteGeminiKey = '';
 
+    // Reply / React / Delete State
+    let currentMessagesCache = {};
+    let selectedMessageId = null;
+    let replyTargetMsg = null;
+    let pendingNotifyAction = null;
+    const notifiedMsgIds = new Set();
+
+    // Voice Recording & WebRTC Call State
     let mediaRecorder = null;
     let audioChunks = [];
     let recordInterval = null;
@@ -577,6 +715,15 @@
     let callSeconds = 0;
     let isMuted = false;
     let isSpeaker = true;
+
+    // In-Chat Button-Phone Mini Game State
+    let gameLoop = null;
+    let snake = [];
+    let snakeDir = { x: 1, y: 0 };
+    let nextSnakeDir = { x: 1, y: 0 };
+    let food = { x: 8, y: 5 };
+    let gameScore = 0;
+    let gameBest = parseInt(localStorage.getItem('kalah_game_best') || '0', 10);
 
     const rtcConfig = {
       iceServers: [
@@ -609,18 +756,120 @@
         success: 'bg-emerald-950/95 border-emerald-500 text-emerald-100',
         error: 'bg-red-950/95 border-red-500 text-red-100'
       };
-      toast.className = `px-4 py-3 rounded-2xl border shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 transform translate-y-0 ${colors[type] || colors.info}`;
+      toast.className = `px-4 py-3 rounded-2xl border shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 ${colors[type] || colors.info}`;
       toast.innerHTML = `<span>${message}</span>`;
       container.appendChild(toast);
       setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(-10px)';
         setTimeout(() => toast.remove(), 300);
-      }, 3200);
+      }, 3000);
+    }
+
+    // ==================== NOTIFICATIONS (IN-APP + BROWSER + SOUND) ====================
+    function playNotificationTone(isCall = false) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = isCall ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(isCall ? 660 : 520, ctx.currentTime);
+        if (isCall) osc.frequency.setValueAtTime(880, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (isCall ? 0.35 : 0.18));
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + (isCall ? 0.36 : 0.2));
+      } catch (e) {}
+    }
+
+    function enableBrowserNotifications() {
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        Notification.requestPermission().then(perm => {
+          showToast(perm === 'granted' ? 'Notifications enabled!' : 'In-app alerts active', 'success');
+        });
+      } else {
+        showToast('Notifications & sound alerts active!', 'success');
+      }
+    }
+
+    function triggerNotifyAlert(title, body, kind = 'message', onClickAction = null) {
+      playNotificationTone(kind === 'call');
+      pendingNotifyAction = onClickAction;
+
+      const banner = document.getElementById('inapp-notify-banner');
+      document.getElementById('notify-banner-title').textContent = title;
+      document.getElementById('notify-banner-body').textContent = body;
+      document.getElementById('notify-banner-icon').setAttribute('data-lucide', kind === 'call' ? 'phone-incoming' : 'message-square');
+      lucide.createIcons();
+      banner.classList.remove('hidden');
+
+      clearTimeout(window._notifyTimer);
+      window._notifyTimer = setTimeout(() => hideNotifyBanner(), 4200);
+
+      if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+        try { new Notification(title, { body }); } catch (e) {}
+      }
+    }
+
+    function hideNotifyBanner() {
+      document.getElementById('inapp-notify-banner').classList.add('hidden');
+    }
+
+    function handleNotifyBannerClick() {
+      hideNotifyBanner();
+      if (typeof pendingNotifyAction === 'function') {
+        pendingNotifyAction();
+      }
+    }
+
+    // ==================== SHARE LINK ====================
+    function shareAppLink() {
+      const shareUrl = window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Kalah Chat',
+          text: `Join Kalah Chat (Unlock key: ${UNLOCK_CODE})`,
+          url: shareUrl
+        }).catch(() => {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          showToast('Kalah Chat link copied!', 'success');
+        });
+      } else {
+        showToast(shareUrl, 'info');
+      }
+    }
+
+    // ==================== 1.618 GATE LOCK ====================
+    function submitGateLock() {
+      const val = (document.getElementById('gate-lock-input').value || '').trim();
+      if (val === UNLOCK_CODE) {
+        sessionStorage.setItem('kalah_gate_unlocked', '1');
+        document.getElementById('gate-lock-screen').classList.add('hidden');
+        proceedAfterLock();
+      } else {
+        showToast('Wrong lock code! Type 1.618', 'error');
+      }
+    }
+
+    function proceedAfterLock() {
+      const savedSession = localStorage.getItem('kalah_user_session');
+      if (savedSession) {
+        try {
+          currentUser = JSON.parse(savedSession);
+          bootMainApp();
+          return;
+        } catch (e) {}
+      }
+      showAuthScreen();
     }
 
     function normalizePhone(raw) {
-      return raw.replace(/[^0-9]/g, '');
+      return (raw || '').replace(/[^0-9]/g, '');
     }
 
     function getChatId(phone1, phone2) {
@@ -631,22 +880,16 @@
       lucide.createIcons();
       tempRegAvatar = getDefaultAvatar('K');
       document.getElementById('reg-avatar-preview').src = tempRegAvatar;
+      document.getElementById('game-best-val').textContent = gameBest;
 
       try {
         const savedAI = localStorage.getItem('kalah_ai_history');
         if (savedAI) aiChatHistory = JSON.parse(savedAI);
       } catch (e) {}
 
-      const savedSession = localStorage.getItem('kalah_user_session');
-      if (savedSession) {
-        try {
-          currentUser = JSON.parse(savedSession);
-          bootMainApp();
-        } catch (e) {
-          showAuthScreen();
-        }
-      } else {
-        showAuthScreen();
+      if (sessionStorage.getItem('kalah_gate_unlocked') === '1') {
+        document.getElementById('gate-lock-screen').classList.add('hidden');
+        proceedAfterLock();
       }
     });
 
@@ -737,14 +980,10 @@
           if (!existingData) {
             showToast('Number not found! Switch to "Create Profile" first.', 'error');
             setAuthMode('register');
-            btn.disabled = false;
-            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
             return;
           }
           if (existingData.pin !== pin) {
             showToast('Incorrect PIN! Try again.', 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
             return;
           }
           currentUser = existingData;
@@ -753,14 +992,10 @@
           const bio = document.getElementById('auth-bio').value.trim() || 'Available on Kalah Chat ⚡';
           if (!name) {
             showToast('Please enter your display name!', 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
             return;
           }
           if (existingData && existingData.pin !== pin) {
             showToast('Number already registered with another PIN!', 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
             return;
           }
 
@@ -796,6 +1031,7 @@
         });
       }
       localStorage.removeItem('kalah_user_session');
+      sessionStorage.removeItem('kalah_gate_unlocked');
       location.reload();
     }
 
@@ -849,10 +1085,7 @@
       }
       currentUser.name = newName;
       currentUser.bio = newBio;
-      db.ref(`${ROOT_NODE}/users/${currentUser.phone}`).update({
-        name: newName,
-        bio: newBio
-      });
+      db.ref(`${ROOT_NODE}/users/${currentUser.phone}`).update({ name: newName, bio: newBio });
       localStorage.setItem('kalah_user_session', JSON.stringify(currentUser));
       document.getElementById('profile-display-name').textContent = newName;
       showToast('Profile saved successfully!', 'success');
@@ -875,7 +1108,7 @@
       document.getElementById('fab-new-chat').classList.toggle('hidden', tab !== 'chats');
     }
 
-    // ==================== GROUPS LOGIC ====================
+    // ==================== GROUPS ====================
     function openCreateGroupModal() {
       selectedGroupMembers = new Set([currentUser.phone]);
       document.getElementById('new-group-name-input').value = '';
@@ -890,11 +1123,8 @@
           const row = document.createElement('div');
           row.className = 'p-2.5 rounded-2xl bg-kalah-card/70 border border-kalah-border/50 flex items-center justify-between cursor-pointer';
           row.onclick = () => {
-            if (selectedGroupMembers.has(peer.phone)) {
-              selectedGroupMembers.delete(peer.phone);
-            } else {
-              selectedGroupMembers.add(peer.phone);
-            }
+            if (selectedGroupMembers.has(peer.phone)) selectedGroupMembers.delete(peer.phone);
+            else selectedGroupMembers.add(peer.phone);
             renderGroupMemberSelectionUI();
           };
           row.innerHTML = `
@@ -964,6 +1194,7 @@
     }
 
     const monitoredGroupIds = new Set();
+    const appBootTime = Date.now();
 
     function setupGroupPreviewsListeners() {
       Object.values(allGroupsMap).forEach(group => {
@@ -989,6 +1220,13 @@
               }
               if (msg.sender !== currentUser.phone && msg.timestamp > lastRead) {
                 unread++;
+                const isViewingThis = activeChatPeer && activeChatPeer.isGroup && activeChatPeer.id === group.id;
+                if (!isViewingThis && msg.timestamp > appBootTime - 3000 && !notifiedMsgIds.has(msgId)) {
+                  notifiedMsgIds.add(msgId);
+                  const senderName = allUsersMap[msg.sender]?.name || msg.sender;
+                  const preview = msg.deleted ? 'This message was deleted' : (msg.content || 'Media');
+                  triggerNotifyAlert(`${group.name} • ${senderName}`, preview, 'message', () => openGroupChat(group));
+                }
               }
             });
           }
@@ -1001,13 +1239,15 @@
     }
 
     function openGroupChat(group) {
+      clearReplyTarget();
       activeChatPeer = { ...group, isGroup: true };
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
 
       document.getElementById('room-avatar').classList.remove('hidden');
       document.getElementById('room-ai-avatar').classList.add('hidden');
-      document.getElementById('room-call-actions').classList.add('hidden');
+      document.getElementById('room-call-btn').classList.add('hidden');
+      document.getElementById('room-game-btn').classList.remove('hidden');
       document.getElementById('attach-media-btn').classList.remove('hidden');
       document.getElementById('mic-record-btn').classList.remove('hidden');
 
@@ -1019,21 +1259,20 @@
       groupUnreadCounts[group.id] = 0;
       renderChatList();
 
-      if (activeChatListener) {
-        activeChatListener.off();
-      }
+      if (activeChatListener) activeChatListener.off();
 
       const msgContainer = document.getElementById('messages-container');
       activeChatListener = db.ref(`${ROOT_NODE}/groups/${group.id}/messages`);
       activeChatListener.on('value', (snap) => {
         const msgs = snap.val() || {};
+        currentMessagesCache = msgs;
         const now = Date.now();
         localStorage.setItem(`kalah_read_${group.id}`, now.toString());
 
         msgContainer.innerHTML = `
           <div class="flex justify-center my-2">
             <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
-              🔒 Group messages vanish after 24 hours.
+              🔒 Group messages vanish after 24h • Tap any message to React, Reply or Delete
             </span>
           </div>
         `;
@@ -1044,14 +1283,14 @@
             db.ref(`${ROOT_NODE}/groups/${group.id}/messages/${msgId}`).remove();
             return;
           }
-          appendMessageBubble(msg, msg.sender === currentUser.phone, true);
+          appendMessageBubble(msgId, msg, msg.sender === currentUser.phone, true);
         });
 
         msgContainer.scrollTop = msgContainer.scrollHeight;
       });
     }
 
-    // ==================== DIRECT CHATS & 24H AUTO-CLEANUP ====================
+    // ==================== DIRECT CHATS & 24H CLEANUP ====================
     const monitoredChatIds = new Set();
 
     function setupChatPreviewsListeners() {
@@ -1079,6 +1318,13 @@
               }
               if (msg.sender !== currentUser.phone && msg.timestamp > lastRead) {
                 unread++;
+                const isViewingPeer = activeChatPeer && activeChatPeer !== 'KALAH_AI' && !activeChatPeer.isGroup && activeChatPeer.phone === peerPhone;
+                if (!isViewingPeer && msg.timestamp > appBootTime - 3000 && !notifiedMsgIds.has(msgId)) {
+                  notifiedMsgIds.add(msgId);
+                  const peerObj = allUsersMap[peerPhone] || { phone: peerPhone, name: peerPhone };
+                  const preview = msg.deleted ? 'This message was deleted' : (msg.type === 'text' ? msg.content : `Sent a ${msg.type}`);
+                  triggerNotifyAlert(peerObj.name, preview, 'message', () => openFriendChat(peerObj));
+                }
               }
             });
           }
@@ -1135,6 +1381,16 @@
       if (!ts) return '';
       const d = new Date(ts);
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getPreviewLabel(msg) {
+      if (!msg) return '';
+      if (msg.deleted) return '🚫 This message was deleted';
+      if (msg.type === 'text') return msg.content;
+      if (msg.type === 'image') return '📷 Photo';
+      if (msg.type === 'video') return '🎥 Video';
+      if (msg.type === 'voice') return '🎤 Voice message';
+      return '';
     }
 
     function renderChatList() {
@@ -1202,10 +1458,7 @@
           let previewText = `${(g.members || []).length} members`;
           if (lastMsg) {
             const senderName = lastMsg.sender === currentUser.phone ? 'You' : (allUsersMap[lastMsg.sender]?.name || lastMsg.sender);
-            if (lastMsg.type === 'text') previewText = `${senderName}: ${lastMsg.content}`;
-            else if (lastMsg.type === 'image') previewText = `${senderName}: 📷 Photo`;
-            else if (lastMsg.type === 'video') previewText = `${senderName}: 🎥 Video`;
-            else if (lastMsg.type === 'voice') previewText = `${senderName}: 🎤 Voice message`;
+            previewText = `${senderName}: ${getPreviewLabel(lastMsg)}`;
           }
 
           const row = document.createElement('div');
@@ -1239,10 +1492,7 @@
             if (lastMsg.sender === currentUser.phone) {
               checkIcon = `<i data-lucide="check-check" class="w-3.5 h-3.5 text-blue-400 inline mr-1 shrink-0"></i>`;
             }
-            if (lastMsg.type === 'text') previewText = lastMsg.content;
-            else if (lastMsg.type === 'image') previewText = '📷 Photo';
-            else if (lastMsg.type === 'video') previewText = '🎥 Video';
-            else if (lastMsg.type === 'voice') previewText = '🎤 Voice message';
+            previewText = getPreviewLabel(lastMsg);
           }
 
           const row = document.createElement('div');
@@ -1317,13 +1567,15 @@
     }
 
     function openFriendChat(peer) {
+      clearReplyTarget();
       activeChatPeer = peer;
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
 
       document.getElementById('room-avatar').classList.remove('hidden');
       document.getElementById('room-ai-avatar').classList.add('hidden');
-      document.getElementById('room-call-actions').classList.remove('hidden');
+      document.getElementById('room-call-btn').classList.remove('hidden');
+      document.getElementById('room-game-btn').classList.remove('hidden');
       document.getElementById('attach-media-btn').classList.remove('hidden');
       document.getElementById('mic-record-btn').classList.remove('hidden');
 
@@ -1336,21 +1588,20 @@
       unreadCounts[peer.phone] = 0;
       renderChatList();
 
-      if (activeChatListener) {
-        activeChatListener.off();
-      }
+      if (activeChatListener) activeChatListener.off();
 
       const msgContainer = document.getElementById('messages-container');
       activeChatListener = db.ref(`${ROOT_NODE}/chats/${chatId}/messages`);
       activeChatListener.on('value', (snap) => {
         const msgs = snap.val() || {};
+        currentMessagesCache = msgs;
         const now = Date.now();
         localStorage.setItem(`kalah_read_${chatId}`, now.toString());
 
         msgContainer.innerHTML = `
           <div class="flex justify-center my-2">
             <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
-              🔒 Messages, photos, videos & voice notes vanish after 24 hours.
+              🔒 Messages vanish after 24h • Tap any message to React, Reply or Delete
             </span>
           </div>
         `;
@@ -1361,7 +1612,7 @@
             db.ref(`${ROOT_NODE}/chats/${chatId}/messages/${msgId}`).remove();
             return;
           }
-          appendMessageBubble(msg, msg.sender === currentUser.phone, false);
+          appendMessageBubble(msgId, msg, msg.sender === currentUser.phone, false);
         });
 
         msgContainer.scrollTop = msgContainer.scrollHeight;
@@ -1376,6 +1627,7 @@
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         cancelVoiceRecording();
       }
+      clearReplyTarget();
       activeChatPeer = null;
       document.getElementById('chat-room').classList.add('hidden');
     }
@@ -1400,7 +1652,72 @@
       }
     }
 
-    function appendMessageBubble(msg, isMine, showSenderLabel = false) {
+    // ==================== REPLY, REACT & DELETE FOR EVERYONE ====================
+    function openMsgActionModal(msgId, msg) {
+      if (msg.deleted || !activeChatPeer || activeChatPeer === 'KALAH_AI') return;
+      selectedMessageId = msgId;
+      const delBtn = document.getElementById('btn-delete-everyone');
+      if (msg.sender === currentUser.phone) {
+        delBtn.classList.remove('hidden');
+      } else {
+        delBtn.classList.add('hidden');
+      }
+      document.getElementById('msg-action-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeMsgActionModal() {
+      document.getElementById('msg-action-modal').classList.add('hidden');
+    }
+
+    function triggerReplySelectedMessage() {
+      const msg = currentMessagesCache[selectedMessageId];
+      closeMsgActionModal();
+      if (!msg) return;
+      const senderLabel = msg.sender === currentUser.phone ? 'You' : (allUsersMap[msg.sender]?.name || msg.sender);
+      replyTargetMsg = {
+        id: selectedMessageId,
+        senderName: senderLabel,
+        preview: getPreviewLabel(msg)
+      };
+      document.getElementById('reply-preview-sender').textContent = `Reply to ${senderLabel}`;
+      document.getElementById('reply-preview-text').textContent = replyTargetMsg.preview;
+      document.getElementById('reply-preview-bar').classList.remove('hidden');
+      document.getElementById('message-text-input').focus();
+    }
+
+    function clearReplyTarget() {
+      replyTargetMsg = null;
+      document.getElementById('reply-preview-bar').classList.add('hidden');
+    }
+
+    async function reactToSelectedMessage(emoji) {
+      const msgId = selectedMessageId;
+      closeMsgActionModal();
+      const targetRef = getTargetMessagesRef();
+      if (!targetRef || !msgId) return;
+
+      const currentReactions = currentMessagesCache[msgId]?.reactions || {};
+      const nextEmoji = currentReactions[currentUser.phone] === emoji ? null : emoji;
+      await targetRef.child(`${msgId}/reactions/${currentUser.phone}`).set(nextEmoji);
+    }
+
+    async function deleteSelectedMessageForEveryone() {
+      const msgId = selectedMessageId;
+      closeMsgActionModal();
+      const targetRef = getTargetMessagesRef();
+      if (!targetRef || !msgId) return;
+
+      await targetRef.child(msgId).update({
+        deleted: true,
+        content: '',
+        type: 'text',
+        reactions: null
+      });
+      showToast('Message deleted for everyone', 'info');
+    }
+
+    function appendMessageBubble(msgId, msg, isMine, showSenderLabel = false) {
       const container = document.getElementById('messages-container');
       const wrapper = document.createElement('div');
       wrapper.className = `flex ${isMine ? 'justify-end' : 'justify-start'}`;
@@ -1409,20 +1726,29 @@
         ? 'bg-kalah-sent text-white bubble-sent border border-blue-400/20'
         : 'bg-kalah-received text-white bubble-received border border-kalah-border';
 
-      const senderLabelHtml = (!isMine && showSenderLabel)
+      const senderLabelHtml = (!isMine && showSenderLabel && !msg.deleted)
         ? `<p class="text-[10px] font-bold text-blue-400 mb-0.5">${escapeHtml(allUsersMap[msg.sender]?.name || msg.sender || 'Member')}</p>`
         : '';
 
+      const replyQuoteHtml = (!msg.deleted && msg.replyTo)
+        ? `<div class="mb-1.5 px-2.5 py-1 rounded-lg bg-black/25 border-l-2 border-cyan-300 text-[11px]">
+             <p class="font-bold text-cyan-200 truncate">${escapeHtml(msg.replyTo.senderName)}</p>
+             <p class="text-white/80 truncate">${escapeHtml(msg.replyTo.preview)}</p>
+           </div>`
+        : '';
+
       let bodyHtml = '';
-      if (msg.type === 'text') {
+      if (msg.deleted) {
+        bodyHtml = `<p class="text-[13px] italic text-white/65 flex items-center gap-1.5"><span>🚫</span><span>This message was deleted</span></p>`;
+      } else if (msg.type === 'text') {
         bodyHtml = `<p class="text-[14px] leading-relaxed whitespace-pre-wrap break-words">${escapeHtml(msg.content)}</p>`;
       } else if (msg.type === 'image') {
-        bodyHtml = `<img src="${msg.content}" alt="Photo" class="rounded-xl max-h-64 w-auto object-contain bg-black/30 cursor-pointer" onclick="window.open(this.src, '_blank')" />`;
+        bodyHtml = `<img src="${msg.content}" alt="Photo" class="rounded-xl max-h-64 w-auto object-contain bg-black/30 cursor-pointer" onclick="event.stopPropagation(); window.open(this.src, '_blank')" />`;
       } else if (msg.type === 'video') {
-        bodyHtml = `<video src="${msg.content}" controls playsinline class="rounded-xl max-h-64 w-full bg-black"></video>`;
+        bodyHtml = `<video src="${msg.content}" controls playsinline onclick="event.stopPropagation()" class="rounded-xl max-h-64 w-full bg-black"></video>`;
       } else if (msg.type === 'voice') {
         bodyHtml = `
-          <div class="flex items-center gap-2.5 min-w-[200px] py-1">
+          <div class="flex items-center gap-2.5 min-w-[200px] py-1" onclick="event.stopPropagation()">
             <div class="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0">
               <i data-lucide="mic" class="w-4 h-4 text-white"></i>
             </div>
@@ -1431,16 +1757,27 @@
         `;
       }
 
-      wrapper.innerHTML = `
-        <div class="max-w-[80%] px-3.5 py-2 shadow-md ${bubbleClass}">
-          ${senderLabelHtml}
-          ${bodyHtml}
-          <div class="flex items-center justify-end gap-1 mt-1 text-[10px] ${isMine ? 'text-blue-200/80' : 'text-kalah-muted'}">
-            <span>${formatShortTime(msg.timestamp)}</span>
-            ${isMine ? '<i data-lucide="check-check" class="w-3 h-3 text-cyan-300"></i>' : ''}
-          </div>
+      const reactionsObj = msg.reactions || {};
+      const reactionList = Object.values(reactionsObj).filter(Boolean);
+      const reactionsHtml = (!msg.deleted && reactionList.length > 0)
+        ? `<div class="mt-1 inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-black/35 border border-white/10 text-xs">${reactionList.join(' ')}</div>`
+        : '';
+
+      const bubbleEl = document.createElement('div');
+      bubbleEl.className = `max-w-[80%] px-3.5 py-2 shadow-md cursor-pointer ${bubbleClass}`;
+      bubbleEl.onclick = () => openMsgActionModal(msgId, msg);
+      bubbleEl.innerHTML = `
+        ${senderLabelHtml}
+        ${replyQuoteHtml}
+        ${bodyHtml}
+        ${reactionsHtml}
+        <div class="flex items-center justify-end gap-1 mt-1 text-[10px] ${isMine ? 'text-blue-200/80' : 'text-kalah-muted'}">
+          <span>${formatShortTime(msg.timestamp)}</span>
+          ${isMine && !msg.deleted ? '<i data-lucide="check-check" class="w-3 h-3 text-cyan-300"></i>' : ''}
         </div>
       `;
+
+      wrapper.appendChild(bubbleEl);
       container.appendChild(wrapper);
       lucide.createIcons();
     }
@@ -1470,15 +1807,24 @@
       const targetRef = getTargetMessagesRef();
       if (!targetRef) return;
       const now = Date.now();
-      await targetRef.push({
+      const payload = {
         sender: currentUser.phone,
         type: 'text',
         content: text,
         timestamp: now,
         expiresAt: now + TWENTY_FOUR_HOURS_MS
-      });
+      };
+      if (replyTargetMsg) {
+        payload.replyTo = {
+          senderName: replyTargetMsg.senderName,
+          preview: replyTargetMsg.preview
+        };
+      }
+      clearReplyTarget();
+      await targetRef.push(payload);
     }
 
+    // ==================== MEDIA (<7MB) & VOICE (<1MB) ====================
     function handleMediaUpload(event) {
       const file = event.target.files[0];
       event.target.value = '';
@@ -1504,20 +1850,18 @@
 
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const base64Data = e.target.result;
         const now = Date.now();
         try {
           await targetRef.push({
             sender: currentUser.phone,
             type: isImage ? 'image' : 'video',
-            content: base64Data,
+            content: e.target.result,
             fileName: file.name,
             timestamp: now,
             expiresAt: now + TWENTY_FOUR_HOURS_MS
           });
           showToast(`${isImage ? 'Photo' : 'Video'} sent! (Auto-deletes in 24h)`, 'success');
         } catch (err) {
-          console.error(err);
           showToast('Failed to send media. Try a smaller file.', 'error');
         }
       };
@@ -1561,7 +1905,6 @@
           document.getElementById('record-timer').textContent = `${mins}:${secs}`;
         }, 1000);
       } catch (err) {
-        console.error(err);
         showToast('Microphone permission denied!', 'error');
       }
     }
@@ -1614,6 +1957,103 @@
       mediaRecorder.stop();
       document.getElementById('recording-bar').classList.add('hidden');
       document.getElementById('chat-input-bar').classList.remove('hidden');
+    }
+
+    // ==================== IN-CHAT BUTTON-PHONE MINI GAME ====================
+    function openInChatGame() {
+      document.getElementById('inchat-game-modal').classList.remove('hidden');
+      lucide.createIcons();
+      restartMiniGame();
+    }
+
+    function closeInChatGame() {
+      clearInterval(gameLoop);
+      gameLoop = null;
+      document.getElementById('inchat-game-modal').classList.add('hidden');
+    }
+
+    function restartMiniGame() {
+      clearInterval(gameLoop);
+      snake = [{ x: 6, y: 5 }, { x: 5, y: 5 }, { x: 4, y: 5 }];
+      snakeDir = { x: 1, y: 0 };
+      nextSnakeDir = { x: 1, y: 0 };
+      food = { x: 10, y: 5 };
+      gameScore = 0;
+      document.getElementById('game-score-val').textContent = '0';
+      gameLoop = setInterval(stepMiniGame, 150);
+    }
+
+    function setGameDir(dx, dy) {
+      if (dx === -snakeDir.x && dy === -snakeDir.y) return;
+      nextSnakeDir = { x: dx, y: dy };
+    }
+
+    function stepMiniGame() {
+      const canvas = document.getElementById('retro-game-canvas');
+      const ctx = canvas.getContext('2d');
+      const grid = 20;
+      const cols = canvas.width / grid;
+      const rows = canvas.height / grid;
+
+      snakeDir = nextSnakeDir;
+      const head = { x: snake[0].x + snakeDir.x, y: snake[0].y + snakeDir.y };
+
+      if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows || snake.some(s => s.x === head.x && s.y === head.y)) {
+        clearInterval(gameLoop);
+        ctx.fillStyle = 'rgba(5,10,20,0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Game Over! Score: ${gameScore}`, canvas.width / 2, canvas.height / 2);
+        return;
+      }
+
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        gameScore += 10;
+        document.getElementById('game-score-val').textContent = gameScore;
+        if (gameScore > gameBest) {
+          gameBest = gameScore;
+          localStorage.setItem('kalah_game_best', String(gameBest));
+          document.getElementById('game-best-val').textContent = gameBest;
+        }
+        food = {
+          x: Math.floor(Math.random() * cols),
+          y: Math.floor(Math.random() * rows)
+        };
+      } else {
+        snake.pop();
+      }
+
+      ctx.fillStyle = '#040811';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(food.x * grid + 3, food.y * grid + 3, grid - 6, grid - 6);
+
+      snake.forEach((seg, idx) => {
+        ctx.fillStyle = idx === 0 ? '#2b7fff' : '#16499c';
+        ctx.fillRect(seg.x * grid + 2, seg.y * grid + 2, grid - 4, grid - 4);
+      });
+    }
+
+    async function shareGameScoreToChat() {
+      const targetRef = getTargetMessagesRef();
+      if (!targetRef) {
+        showToast('Open a friend or group chat first!', 'error');
+        return;
+      }
+      const now = Date.now();
+      await targetRef.push({
+        sender: currentUser.phone,
+        type: 'text',
+        content: `🎮 Scored ${gameScore} pts on Kalah Retro Arcade!`,
+        timestamp: now,
+        expiresAt: now + TWENTY_FOUR_HOURS_MS
+      });
+      closeInChatGame();
+      showToast('Score sent to chat!', 'success');
     }
 
     // ==================== WEBRTC VOICE CALL ====================
@@ -1703,6 +2143,7 @@
         };
 
         logCallRecord(callData.callerName, callData.callerPhone, 'Incoming');
+        triggerNotifyAlert(`Incoming Call • ${callData.callerName}`, 'Tap to answer Kalah Voice Call', 'call');
         openCallUI(
           callData.callerName,
           callData.callerPhone,
@@ -1899,7 +2340,7 @@
       startVoiceCall();
     }
 
-    // ==================== KALAH AI CHAT WITH MULTI-MODEL FALLBACK ====================
+    // ==================== KALAH AI (3.8 / 3.5 / 2.5 FALLBACK) ====================
     function fetchHiddenGeminiKey() {
       db.ref(`${ROOT_NODE}/config/gemini_key`).on('value', (snap) => {
         const val = snap.val();
@@ -1914,13 +2355,15 @@
     }
 
     function openAIChat() {
+      clearReplyTarget();
       activeChatPeer = 'KALAH_AI';
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
 
       document.getElementById('room-avatar').classList.add('hidden');
       document.getElementById('room-ai-avatar').classList.remove('hidden');
-      document.getElementById('room-call-actions').classList.add('hidden');
+      document.getElementById('room-call-btn').classList.add('hidden');
+      document.getElementById('room-game-btn').classList.add('hidden');
       document.getElementById('attach-media-btn').classList.add('hidden');
       document.getElementById('mic-record-btn').classList.add('hidden');
       document.getElementById('send-text-btn').classList.remove('hidden');
@@ -1942,14 +2385,14 @@
       `;
 
       if (aiChatHistory.length === 0) {
-        appendMessageBubble({
+        appendMessageBubble('ai_welcome', {
           type: 'text',
           content: `ආයුබෝවන් ${currentUser?.name || 'යාළුවා'}! 👋 මම Kalah AI. ඔයාට මොනවද දැනගන්න ඕනෙ?`,
           timestamp: Date.now()
         }, false);
       } else {
-        aiChatHistory.forEach(item => {
-          appendMessageBubble({
+        aiChatHistory.forEach((item, idx) => {
+          appendMessageBubble(`ai_${idx}`, {
             type: 'text',
             content: item.text,
             timestamp: item.timestamp
@@ -1962,8 +2405,8 @@
     async function callGeminiWithFallback(apiKey, contents) {
       const candidateModels = [
         'gemini-3.8-flash',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash'
+        'gemini-3.5-flash',
+        'gemini-2.5-flash'
       ];
 
       let lastErrMsg = 'Unknown AI error';
@@ -1987,7 +2430,7 @@
           const data = await response.json();
           if (data.error) {
             lastErrMsg = data.error.message || `Error on ${modelName}`;
-            continue; // Try next fallback model if overloaded or unavailable
+            continue;
           }
 
           const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
