@@ -443,6 +443,9 @@
           <button id="room-game-btn" onclick="openOrbGame()" title="Play Mini Game" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-300 transition border border-kalah-border">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
           </button>
+          <button id="room-group-call-btn" onclick="startGroupVoiceCall()" title="Group Call" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-blue text-cyan-300 hover:text-white transition border border-kalah-border hidden">
+            <i data-lucide="users" class="w-4 h-4"></i>
+          </button>
           <button id="room-call-btn" onclick="startVoiceCall()" title="Voice Call" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-blue text-white transition border border-kalah-border">
             <i data-lucide="phone" class="w-4 h-4"></i>
           </button>
@@ -622,12 +625,28 @@
       </div>
     </div>
 
-    <!-- ==================== 5. WHATSAPP-STYLE VOICE CALL SCREEN ==================== -->
+    <!-- ==================== 4C. ADD FRIEND TO CALL MODAL ==================== -->
+    <div id="add-to-call-modal" class="fixed inset-0 z-[65] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[75dvh] flex flex-col shadow-2xl space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
+          <div>
+            <h3 class="text-sm font-bold text-white">Add Friend to Call</h3>
+            <p class="text-[11px] text-kalah-muted">Invite another friend into this call</p>
+          </div>
+          <button onclick="closeAddFriendToCallModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="add-call-friends-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. WHATSAPP-STYLE VOICE & GROUP CALL SCREEN ==================== -->
     <div id="call-overlay" class="fixed inset-0 z-50 bg-gradient-to-b from-[#07152e] via-[#050c1a] to-[#030710] flex flex-col justify-between p-8 hidden">
       <div class="text-center space-y-1 pt-4">
         <div class="flex items-center justify-center gap-1.5 text-xs text-blue-300/80 font-medium">
           <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-          <span>Kalah End-to-End Encrypted Voice</span>
+          <span id="call-header-label">Kalah End-to-End Encrypted Voice</span>
         </div>
       </div>
 
@@ -640,6 +659,7 @@
           <h2 id="call-peer-name" class="text-2xl font-extrabold text-white tracking-tight">Friend Name</h2>
           <p id="call-peer-phone" class="text-xs text-kalah-muted font-medium">+94 77 000 0000</p>
           <p id="call-status-text" class="text-sm font-semibold text-blue-400 pt-1">Calling...</p>
+          <p id="call-participants-list" class="text-[11px] text-cyan-300/90 pt-1 hidden"></p>
         </div>
       </div>
 
@@ -663,13 +683,16 @@
         </div>
 
         <div id="active-call-controls" class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-4 flex items-center justify-around max-w-xs mx-auto shadow-2xl">
-          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="volume-2" class="w-6 h-6"></i>
+          <button onclick="openAddFriendToCallModal()" id="btn-add-friend-call" title="Add Friend" class="p-3.5 rounded-full bg-kalah-card text-cyan-300 hover:bg-kalah-hover transition">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
           </button>
-          <button onclick="toggleCallMute()" id="btn-call-mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="mic" class="w-6 h-6"></i>
+          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" title="Speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="volume-2" class="w-5 h-5"></i>
           </button>
-          <button onclick="endCurrentCall()" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
+          <button onclick="toggleCallMute()" id="btn-call-mute" title="Mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="mic" class="w-5 h-5"></i>
+          </button>
+          <button onclick="endCurrentCall()" title="End Call" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
             <i data-lucide="phone-off" class="w-6 h-6"></i>
           </button>
         </div>
@@ -736,6 +759,8 @@
     let callSeconds = 0;
     let isMuted = false;
     let isSpeaker = true;
+    let callParticipantsSet = new Set();
+    let callInviteListener = null;
 
     let orbScore = 0;
     let orbSecondsLeft = 20;
@@ -783,24 +808,58 @@
       }, 3000);
     }
 
-    // ==================== NOTIFICATIONS ====================
-    function playNotificationTone(isCall = false) {
+    // ==================== SOUND EFFECTS & NOTIFICATIONS ====================
+    function playToneSequence(notes, type = 'sine') {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = isCall ? 'triangle' : 'sine';
-        osc.frequency.setValueAtTime(isCall ? 660 : 520, ctx.currentTime);
-        if (isCall) osc.frequency.setValueAtTime(880, ctx.currentTime + 0.14);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (isCall ? 0.35 : 0.18));
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + (isCall ? 0.36 : 0.2));
+        const now = ctx.currentTime;
+        notes.forEach(([freq, startOffset, duration, gainVal]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now + startOffset);
+          gain.gain.setValueAtTime(gainVal || 0.07, now + startOffset);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + startOffset + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + startOffset);
+          osc.stop(now + startOffset + duration + 0.02);
+        });
       } catch (e) {}
+    }
+
+    function playSendSound() {
+      playToneSequence([
+        [580, 0, 0.07, 0.06],
+        [860, 0.06, 0.09, 0.07]
+      ], 'sine');
+    }
+
+    function playReceiveSound() {
+      playToneSequence([
+        [660, 0, 0.09, 0.07],
+        [880, 0.09, 0.11, 0.07]
+      ], 'sine');
+    }
+
+    function playReactSound() {
+      playToneSequence([
+        [740, 0, 0.06, 0.05],
+        [980, 0.05, 0.07, 0.05]
+      ], 'triangle');
+    }
+
+    function playNotificationTone(isCall = false) {
+      if (isCall) {
+        playToneSequence([
+          [660, 0, 0.14, 0.08],
+          [880, 0.15, 0.16, 0.08]
+        ], 'triangle');
+      } else {
+        playReceiveSound();
+      }
     }
 
     function enableBrowserNotifications() {
@@ -1154,6 +1213,7 @@
       });
 
       listenForIncomingCalls();
+      listenForCallInvites();
       renderCallHistory();
       run24HourCleanup();
       setInterval(run24HourCleanup, 60000);
@@ -1330,6 +1390,7 @@
       document.getElementById('room-avatar').classList.remove('hidden');
       document.getElementById('room-ai-avatar').classList.add('hidden');
       document.getElementById('room-call-btn').classList.add('hidden');
+      document.getElementById('room-group-call-btn').classList.remove('hidden');
       document.getElementById('room-game-btn').classList.remove('hidden');
       document.getElementById('attach-media-btn').classList.remove('hidden');
       document.getElementById('view-once-toggle-btn').classList.remove('hidden');
@@ -1675,6 +1736,7 @@
       document.getElementById('room-avatar').classList.remove('hidden');
       document.getElementById('room-ai-avatar').classList.add('hidden');
       document.getElementById('room-call-btn').classList.remove('hidden');
+      document.getElementById('room-group-call-btn').classList.add('hidden');
       document.getElementById('room-game-btn').classList.remove('hidden');
       document.getElementById('attach-media-btn').classList.remove('hidden');
       document.getElementById('view-once-toggle-btn').classList.remove('hidden');
@@ -1815,6 +1877,7 @@
       const currentReactions = currentMessagesCache[msgId]?.reactions || {};
       const nextEmoji = currentReactions[currentUser.phone] === emoji ? null : emoji;
       await targetRef.child(`${msgId}/reactions/${currentUser.phone}`).set(nextEmoji);
+      playReactSound();
     }
 
     async function deleteSelectedMessageForEveryone() {
@@ -1934,7 +1997,6 @@
 
       wrapper.appendChild(bubbleEl);
 
-      // Small always-visible React & Reply strip right below the bubble
       if (!msg.deleted && activeChatPeer !== 'KALAH_AI') {
         const actionsRow = document.createElement('div');
         actionsRow.className = `flex items-center gap-2 mt-1 px-1 text-[10px] text-kalah-muted`;
@@ -1966,6 +2028,7 @@
 
       input.value = '';
       toggleMicSendBtn();
+      playSendSound();
 
       if (activeChatPeer === 'KALAH_AI') {
         await handleSendToKalahAI(text);
@@ -2030,6 +2093,7 @@
             timestamp: now,
             expiresAt: now + TWENTY_FOUR_HOURS_MS
           });
+          playSendSound();
           if (isOneTime) {
             viewOnceMode = false;
             toggleViewOnceMode();
@@ -2124,6 +2188,7 @@
             timestamp: now,
             expiresAt: now + TWENTY_FOUR_HOURS_MS
           });
+          playSendSound();
           showToast('Voice message sent!', 'success');
         };
         reader.readAsDataURL(blob);
@@ -2205,15 +2270,118 @@
         timestamp: now,
         expiresAt: now + TWENTY_FOUR_HOURS_MS
       });
+      playSendSound();
       closeOrbGame();
       showToast('Score sent to chat!', 'success');
     }
 
-    // ==================== WEBRTC VOICE CALL ====================
-    async function startVoiceCall() {
-      if (!activeChatPeer || activeChatPeer === 'KALAH_AI' || activeChatPeer.isGroup) return;
+    // ==================== WEBRTC VOICE CALL + GROUP CALL + ADD FRIEND ====================
+    function updateParticipantsUI() {
+      const el = document.getElementById('call-participants-list');
+      const names = Array.from(callParticipantsSet).map(p => p === currentUser.phone ? `${currentUser.name} (You)` : (allUsersMap[p]?.name || p));
+      if (names.length > 1) {
+        el.textContent = `In call: ${names.join(', ')}`;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
 
-      const peer = activeChatPeer;
+    async function startGroupVoiceCall() {
+      if (!activeChatPeer || !activeChatPeer.isGroup) return;
+      const group = activeChatPeer;
+      const members = (group.members || []).filter(p => p !== currentUser.phone);
+      if (members.length === 0) {
+        showToast('No other members in this group!', 'error');
+        return;
+      }
+
+      const firstPeer = allUsersMap[members[0]] || { phone: members[0], name: members[0], avatar: getDefaultAvatar(members[0]) };
+      await startVoiceCall(firstPeer, `${group.name} (Group Call)`);
+
+      const remaining = members.slice(1);
+      for (const phone of remaining) {
+        await inviteFriendToCurrentCall(phone, true);
+      }
+    }
+
+    function openAddFriendToCallModal() {
+      const listEl = document.getElementById('add-call-friends-list');
+      listEl.innerHTML = '';
+      const candidates = Object.values(allUsersMap).filter(u =>
+        u.phone !== currentUser.phone && !callParticipantsSet.has(u.phone)
+      );
+
+      if (candidates.length === 0) {
+        listEl.innerHTML = `<p class="text-xs text-kalah-muted text-center py-6">No additional friends available to add.</p>`;
+      } else {
+        candidates.forEach(peer => {
+          const row = document.createElement('div');
+          row.className = 'p-3 rounded-2xl bg-kalah-card/80 border border-kalah-border flex items-center justify-between gap-3';
+          row.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+              <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-10 h-10 rounded-full object-cover bg-kalah-surface shrink-0" />
+              <div class="min-w-0">
+                <p class="text-sm font-bold text-white truncate">${escapeHtml(peer.name)}</p>
+                <p class="text-[11px] text-kalah-muted">${peer.phone}</p>
+              </div>
+            </div>
+            <button onclick="inviteFriendToCurrentCall('${peer.phone}')" class="px-3 py-1.5 rounded-xl bg-kalah-blue text-xs font-bold text-white shrink-0">Add</button>
+          `;
+          listEl.appendChild(row);
+        });
+      }
+
+      document.getElementById('add-to-call-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAddFriendToCallModal() {
+      document.getElementById('add-to-call-modal').classList.add('hidden');
+    }
+
+    async function inviteFriendToCurrentCall(targetPhone, silent = false) {
+      callParticipantsSet.add(targetPhone);
+      updateParticipantsUI();
+      closeAddFriendToCallModal();
+
+      const inviteId = `${currentUser.phone}_${Date.now()}`;
+      await db.ref(`${ROOT_NODE}/call_invites/${targetPhone}/${inviteId}`).set({
+        fromPhone: currentUser.phone,
+        fromName: currentUser.name,
+        fromAvatar: currentUser.avatar || '',
+        timestamp: Date.now()
+      });
+
+      if (!silent) {
+        const name = allUsersMap[targetPhone]?.name || targetPhone;
+        showToast(`Invited ${name} to call!`, 'success');
+      }
+    }
+
+    function listenForCallInvites() {
+      db.ref(`${ROOT_NODE}/call_invites/${currentUser.phone}`).on('child_added', (snap) => {
+        const inv = snap.val();
+        if (!inv || Date.now() - inv.timestamp > 45000) return;
+        snap.ref.remove();
+        if (activeCallData) return;
+
+        const callerPeer = allUsersMap[inv.fromPhone] || {
+          phone: inv.fromPhone,
+          name: inv.fromName,
+          avatar: inv.fromAvatar || getDefaultAvatar(inv.fromName)
+        };
+        triggerNotifyAlert(inv.fromName, 'Added you to a voice call!', 'call', () => {
+          openFriendChat(callerPeer);
+          startVoiceCall(callerPeer, `Joined ${inv.fromName}'s Call`);
+        });
+      });
+    }
+
+    async function startVoiceCall(targetPeer = null, customTitle = null) {
+      const peer = targetPeer || (activeChatPeer && activeChatPeer !== 'KALAH_AI' && !activeChatPeer.isGroup ? activeChatPeer : null);
+      if (!peer) return;
+
       const callId = `${currentUser.phone}_${Date.now()}`;
 
       try {
@@ -2223,8 +2391,16 @@
         return;
       }
 
-      openCallUI(peer.name, peer.phone, peer.avatar || getDefaultAvatar(peer.name), 'Calling...', false);
-      logCallRecord(peer.name, peer.phone, 'Outgoing');
+      callParticipantsSet = new Set([currentUser.phone, peer.phone]);
+      openCallUI(
+        customTitle || peer.name,
+        peer.phone,
+        peer.avatar || getDefaultAvatar(peer.name),
+        'Calling...',
+        false
+      );
+      updateParticipantsUI();
+      logCallRecord(customTitle || peer.name, peer.phone, 'Outgoing');
 
       peerConnection = new RTCPeerConnection(rtcConfig);
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -2294,6 +2470,7 @@
           data: callData,
           callId
         };
+        callParticipantsSet = new Set([currentUser.phone, callData.callerPhone]);
 
         logCallRecord(callData.callerName, callData.callerPhone, 'Incoming');
         triggerNotifyAlert(callData.callerName, 'Incoming voice call...', 'call');
@@ -2304,6 +2481,7 @@
           'Incoming Kalah Voice Call...',
           true
         );
+        updateParticipantsUI();
 
         activeCallData.ref.on('value', (s) => {
           const val = s.val();
@@ -2393,6 +2571,7 @@
         document.getElementById('incoming-call-controls').classList.add('hidden');
         document.getElementById('active-call-controls').classList.remove('hidden');
       }
+      lucide.createIcons();
     }
 
     function startConnectedCallTimer() {
@@ -2432,6 +2611,8 @@
 
     function cleanupCallUI() {
       clearInterval(callTimerInterval);
+      callParticipantsSet.clear();
+      closeAddFriendToCallModal();
       if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
         localStream = null;
@@ -2517,6 +2698,7 @@
       document.getElementById('room-avatar').classList.add('hidden');
       document.getElementById('room-ai-avatar').classList.remove('hidden');
       document.getElementById('room-call-btn').classList.add('hidden');
+      document.getElementById('room-group-call-btn').classList.add('hidden');
       document.getElementById('room-game-btn').classList.add('hidden');
       document.getElementById('attach-media-btn').classList.add('hidden');
       document.getElementById('view-once-toggle-btn').classList.add('hidden');
@@ -2629,6 +2811,7 @@
 
         const replyText = await callGeminiWithFallback(apiKey, contents);
         document.getElementById('ai-typing-indicator')?.remove();
+        playReceiveSound();
 
         aiChatHistory.push({ role: 'model', text: replyText, timestamp: Date.now() });
         localStorage.setItem('kalah_ai_history', JSON.stringify(aiChatHistory.slice(-30)));
