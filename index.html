@@ -255,7 +255,7 @@
         <section id="view-chats" class="divide-y divide-kalah-border/30">
           <div class="px-4 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar bg-kalah-bg/60">
             <button id="chip-all" onclick="setChatFilter('all')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-blue text-white transition shrink-0">
-              All
+              All (<span id="all-count-badge">0</span>)
             </button>
             <button id="chip-groups" onclick="setChatFilter('groups')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">
               Groups (<span id="groups-count-badge">0</span>)
@@ -269,9 +269,9 @@
           </div>
 
           <div class="px-4 py-2 flex items-center justify-between text-[11px] text-kalah-muted bg-kalah-surface/40">
-            <span class="flex items-center gap-1.5">
+            <span id="db-sync-status" class="flex items-center gap-1.5">
               <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i>
-              Chats & groups auto-delete after 24h
+              Syncing users & chats...
             </span>
             <button onclick="enableBrowserNotifications()" class="text-blue-400 hover:underline font-medium flex items-center gap-1">
               <i data-lucide="bell" class="w-3 h-3"></i> Alerts On
@@ -421,7 +421,6 @@
         </button>
       </nav>
     </div>
-
     <!-- ==================== CHAT CONVERSATION ROOM OVERLAY ==================== -->
     <div id="chat-room" class="hidden fixed inset-0 z-30 max-w-md mx-auto bg-kalah-bg flex flex-col h-screen">
       <div class="bg-kalah-surface/95 backdrop-blur-md border-b border-kalah-border px-3 py-2.5 flex items-center justify-between shrink-0">
@@ -699,7 +698,6 @@
       </div>
     </div>
   </div>
-
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDyVqsqYbsVr0ffvo_lUThdSHR6DlAV-2M",
@@ -1001,11 +999,28 @@
     }
 
     function normalizePhone(raw) {
-      return (raw || '').replace(/[^0-9]/g, '');
+      let digits = (raw || '').replace(/[^0-9]/g, '');
+      if (digits.startsWith('94') && digits.length === 11) {
+        digits = '0' + digits.slice(2);
+      }
+      return digits;
+    }
+
+    function matchesSearchQuery(userObj, rawQuery) {
+      if (!rawQuery) return true;
+      const q = rawQuery.toLowerCase().trim();
+      const nameMatch = (userObj.name || '').toLowerCase().includes(q);
+      const rawPhone = (userObj.phone || '').toLowerCase();
+      const normPhone = normalizePhone(userObj.phone || '');
+      const normQuery = normalizePhone(rawQuery);
+      const phoneMatch =
+        rawPhone.includes(q) ||
+        (normQuery.length > 0 && (normPhone.includes(normQuery) || rawPhone.includes(normQuery)));
+      return nameMatch || phoneMatch;
     }
 
     function getChatId(phone1, phone2) {
-      return [phone1, phone2].sort().join('_');
+      return [normalizePhone(phone1), normalizePhone(phone2)].sort().join('_');
     }
 
     function renderCuteEmojiGrid() {
@@ -1135,7 +1150,8 @@
             showToast('Incorrect PIN! Try again.', 'error');
             return;
           }
-          currentUser = existingData;
+          currentUser = { ...existingData, phone: normalizePhone(existingData.phone || phone) };
+          await userRef.update({ phone: currentUser.phone, online: true, lastSeen: Date.now() });
         } else {
           const name = document.getElementById('auth-name').value.trim();
           const bio = document.getElementById('auth-bio').value.trim() || 'Available on Kalah Chat ⚡';
@@ -1165,7 +1181,7 @@
         showToast(`Welcome, ${currentUser.name}!`, 'success');
       } catch (err) {
         console.error(err);
-        showToast('Firebase connection error. Check database rules!', 'error');
+        showToast(`DB Error: ${err?.message || 'Check Firebase rules'}`, 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
@@ -1184,7 +1200,16 @@
       location.reload();
     }
 
+    function setDbStatusBanner(text, isError = false) {
+      const el = document.getElementById('db-sync-status');
+      if (!el) return;
+      el.className = `flex items-center gap-1.5 ${isError ? 'text-red-400 font-semibold' : 'text-kalah-muted'}`;
+      el.innerHTML = `<i data-lucide="${isError ? 'alert-triangle' : 'clock'}" class="w-3.5 h-3.5 ${isError ? 'text-red-400' : 'text-blue-400'}"></i><span>${escapeHtml(text)}</span>`;
+      lucide.createIcons();
+    }
+
     function bootMainApp() {
+      currentUser.phone = normalizePhone(currentUser.phone);
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-app').classList.remove('hidden');
       applySavedWallpaper();
@@ -1196,7 +1221,7 @@
       document.getElementById('edit-bio-input').value = currentUser.bio || '';
 
       const myUserRef = db.ref(`${ROOT_NODE}/users/${currentUser.phone}`);
-      myUserRef.update({ online: true, lastSeen: Date.now() });
+      myUserRef.update({ phone: currentUser.phone, online: true, lastSeen: Date.now() }).catch(() => {});
       myUserRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
 
       try {
@@ -1215,7 +1240,13 @@
       fetchHiddenGeminiKey();
 
       db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}`).on('value', (snap) => {
-        savedFriendsMap = snap.val() || {};
+        const raw = snap.val() || {};
+        const normalizedSaved = {};
+        Object.entries(raw).forEach(([k, v]) => {
+          const p = normalizePhone(v?.phone || k);
+          if (p) normalizedSaved[p] = { ...v, phone: p };
+        });
+        savedFriendsMap = normalizedSaved;
         try {
           localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
         } catch (e) {}
@@ -1223,25 +1254,42 @@
         renderDirectoryList();
         updateChatRoomFriendButton();
         setupChatPreviewsListeners();
+      }, (err) => {
+        setDbStatusBanner(`Friends sync error: ${err.message}`, true);
       });
 
       db.ref(`${ROOT_NODE}/users`).on('value', (snap) => {
-        allUsersMap = snap.val() || {};
-        const friendCount = Object.keys(allUsersMap).filter(p => p !== currentUser.phone).length;
-        document.getElementById('friends-count-badge').textContent = friendCount;
+        const rawUsers = snap.val() || {};
+        const normalizedUsers = {};
+        Object.entries(rawUsers).forEach(([k, v]) => {
+          if (!v) return;
+          const p = normalizePhone(v.phone || k);
+          if (p) normalizedUsers[p] = { ...v, phone: p };
+        });
+        allUsersMap = normalizedUsers;
+
+        const peerPhones = Object.keys(allUsersMap).filter(p => p !== currentUser.phone);
+        document.getElementById('friends-count-badge').textContent = peerPhones.length;
+        setDbStatusBanner(`Live • ${peerPhones.length} users online/registered • 24h auto-delete`);
+
         renderChatList();
         renderDirectoryList();
         setupChatPreviewsListeners();
+      }, (err) => {
+        setDbStatusBanner(`Users read blocked: ${err.message}`, true);
+        showToast(`Cannot read users list: ${err.message}`, 'error');
       });
 
       db.ref(`${ROOT_NODE}/groups`).on('value', (snap) => {
         allGroupsMap = snap.val() || {};
         const myGroupsCount = Object.values(allGroupsMap).filter(
-          g => g && Array.isArray(g.members) && g.members.includes(currentUser.phone)
+          g => g && Array.isArray(g.members) && g.members.map(normalizePhone).includes(currentUser.phone)
         ).length;
         document.getElementById('groups-count-badge').textContent = myGroupsCount;
         renderChatList();
         setupGroupPreviewsListeners();
+      }, (err) => {
+        console.warn('Groups listener error:', err);
       });
 
       listenForIncomingCalls();
@@ -1250,22 +1298,24 @@
       run24HourCleanup();
       setInterval(run24HourCleanup, 60000);
     }
-
+  </script>
+  <script>
     async function addPermanentFriend(peerPhone, peerObj = null) {
-      if (!currentUser || !peerPhone || peerPhone === currentUser.phone) return;
-      const source = peerObj || allUsersMap[peerPhone] || { phone: peerPhone, name: peerPhone };
+      const cleanPhone = normalizePhone(peerPhone);
+      if (!currentUser || !cleanPhone || cleanPhone === currentUser.phone) return;
+      const source = peerObj || allUsersMap[cleanPhone] || { phone: cleanPhone, name: cleanPhone };
       const record = {
-        phone: source.phone,
-        name: source.name || peerPhone,
+        phone: cleanPhone,
+        name: source.name || cleanPhone,
         avatar: source.avatar || '',
         bio: source.bio || '',
         addedAt: Date.now()
       };
-      savedFriendsMap[peerPhone] = record;
+      savedFriendsMap[cleanPhone] = record;
       try {
         localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
       } catch (e) {}
-      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${peerPhone}`).set(record);
+      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${cleanPhone}`).set(record);
       renderChatList();
       renderDirectoryList();
       updateChatRoomFriendButton();
@@ -1273,13 +1323,14 @@
     }
 
     async function removePermanentFriend(peerPhone) {
-      if (!currentUser || !peerPhone) return;
-      const name = savedFriendsMap[peerPhone]?.name || allUsersMap[peerPhone]?.name || peerPhone;
-      delete savedFriendsMap[peerPhone];
+      const cleanPhone = normalizePhone(peerPhone);
+      if (!currentUser || !cleanPhone) return;
+      const name = savedFriendsMap[cleanPhone]?.name || allUsersMap[cleanPhone]?.name || cleanPhone;
+      delete savedFriendsMap[cleanPhone];
       try {
         localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
       } catch (e) {}
-      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${peerPhone}`).remove();
+      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${cleanPhone}`).remove();
       renderChatList();
       renderDirectoryList();
       updateChatRoomFriendButton();
@@ -1406,7 +1457,7 @@
         showToast('Please enter a group name!', 'error');
         return;
       }
-      const members = Array.from(selectedGroupMembers);
+      const members = Array.from(selectedGroupMembers).map(normalizePhone).filter(Boolean);
       if (!members.includes(currentUser.phone)) members.push(currentUser.phone);
       if (members.length < 2) {
         showToast('Select at least 1 friend for the group!', 'error');
@@ -1433,7 +1484,8 @@
 
     function setupGroupPreviewsListeners() {
       Object.values(allGroupsMap).forEach(group => {
-        if (!group || !Array.isArray(group.members) || !group.members.includes(currentUser.phone)) return;
+        const cleanMembers = (group?.members || []).map(normalizePhone);
+        if (!group || !cleanMembers.includes(currentUser.phone)) return;
         if (monitoredGroupIds.has(group.id)) return;
         monitoredGroupIds.add(group.id);
 
@@ -1550,8 +1602,9 @@
         ...Object.keys(allUsersMap),
         ...Object.keys(savedFriendsMap)
       ]);
-      combinedPhones.forEach(peerPhone => {
-        if (peerPhone === currentUser.phone) return;
+      combinedPhones.forEach(rawPhone => {
+        const peerPhone = normalizePhone(rawPhone);
+        if (!peerPhone || peerPhone === currentUser.phone) return;
         const chatId = getChatId(currentUser.phone, peerPhone);
         if (monitoredChatIds.has(chatId)) return;
         monitoredChatIds.add(chatId);
@@ -1596,12 +1649,12 @@
       if (msg.deleted) return '';
       if (isGroup) {
         const seenCount = Object.keys(msg.seenBy || {}).length;
-        return seenCount > 0 ? 'Seen' : 'Delivered';
+        return seenCount > 0 ? 'Seen ✓✓' : 'Sent ✓';
       }
-      if (msg.seen) return 'Seen';
+      if (msg.seen) return 'Seen ✓✓';
       const peerPhone = activeChatPeer && !activeChatPeer.isGroup ? activeChatPeer.phone : null;
       const peerOnline = peerPhone ? Boolean(allUsersMap[peerPhone]?.online) : false;
-      return peerOnline ? 'Delivered' : 'Sent';
+      return peerOnline ? 'Delivered ✓✓' : 'Sent ✓';
     }
 
     function run24HourCleanup() {
@@ -1664,12 +1717,12 @@
 
     function renderChatList() {
       const container = document.getElementById('chat-list-container');
-      const query = (document.getElementById('chat-search-input').value || '').toLowerCase().trim();
+      const query = (document.getElementById('chat-search-input').value || '').trim();
       container.innerHTML = '';
 
       const myGroups = Object.values(allGroupsMap)
-        .filter(g => g && Array.isArray(g.members) && g.members.includes(currentUser.phone))
-        .filter(g => !query || (g.name || '').toLowerCase().includes(query))
+        .filter(g => g && Array.isArray(g.members) && g.members.map(normalizePhone).includes(currentUser.phone))
+        .filter(g => !query || (g.name || '').toLowerCase().includes(query.toLowerCase()))
         .map(g => ({
           type: 'group',
           data: g,
@@ -1679,28 +1732,24 @@
 
       const mergedPeersMap = {};
       Object.values(savedFriendsMap).forEach(sf => {
-        if (sf && sf.phone && sf.phone !== currentUser.phone) {
-          mergedPeersMap[sf.phone] = { ...sf };
+        const p = normalizePhone(sf?.phone);
+        if (p && p !== currentUser.phone) {
+          mergedPeersMap[p] = { ...sf, phone: p };
         }
       });
       Object.values(allUsersMap).forEach(u => {
-        if (u && u.phone && u.phone !== currentUser.phone) {
-          mergedPeersMap[u.phone] = { ...(mergedPeersMap[u.phone] || {}), ...u };
+        const p = normalizePhone(u?.phone);
+        if (p && p !== currentUser.phone) {
+          mergedPeersMap[p] = { ...(mergedPeersMap[p] || {}), ...u, phone: p };
         }
       });
 
-      let peers = Object.values(mergedPeersMap);
-      if (query) {
-        peers = peers.filter(u =>
-          (u.name || '').toLowerCase().includes(query) ||
-          (u.phone || '').includes(query)
-        );
-      }
+      let peers = Object.values(mergedPeersMap).filter(u => matchesSearchQuery(u, query));
 
       const peerItems = peers.map(u => ({
         type: 'peer',
         data: u,
-        ts: lastMessagesMap[u.phone]?.timestamp || savedFriendsMap[u.phone]?.addedAt || 0,
+        ts: lastMessagesMap[u.phone]?.timestamp || savedFriendsMap[u.phone]?.addedAt || (u.online ? 1 : 0),
         unread: unreadCounts[u.phone] || 0,
         isSavedFriend: Boolean(savedFriendsMap[u.phone])
       }));
@@ -1713,9 +1762,11 @@
       } else if (currentChatFilter === 'friends') {
         combined = peerItems;
       } else {
-        const persistentOrActivePeers = peerItems.filter(p => p.isSavedFriend || lastMessagesMap[p.data.phone]);
-        combined = [...myGroups, ...(persistentOrActivePeers.length > 0 ? persistentOrActivePeers : peerItems)];
+        combined = [...myGroups, ...peerItems];
       }
+
+      const allBadge = document.getElementById('all-count-badge');
+      if (allBadge) allBadge.textContent = combined.length;
 
       combined.sort((a, b) => b.ts - a.ts);
 
@@ -1725,8 +1776,8 @@
             <div class="w-14 h-14 mx-auto rounded-full bg-kalah-card flex items-center justify-center text-kalah-muted">
               <i data-lucide="users" class="w-6 h-6"></i>
             </div>
-            <p class="text-sm font-semibold text-white">No chats here yet</p>
-            <p class="text-xs text-kalah-muted">Tap the blue button below to find & add friends permanently.</p>
+            <p class="text-sm font-semibold text-white">No users found</p>
+            <p class="text-xs text-kalah-muted">Check phone number or create a profile with another number to test chat.</p>
           </div>
         `;
         lucide.createIcons();
@@ -1768,9 +1819,9 @@
         } else {
           const peer = item.data;
           const lastMsg = lastMessagesMap[peer.phone];
-          let previewText = peer.bio || peer.phone;
+          let previewText = `${peer.phone} • ${peer.bio || 'Ready to chat'}`;
           if (lastMsg) {
-            previewText = getPreviewLabel(lastMsg);
+            previewText = `${lastMsg.sender === currentUser.phone ? 'You: ' : ''}${getPreviewLabel(lastMsg)}`;
           }
 
           const row = document.createElement('div');
@@ -1787,7 +1838,7 @@
                   <h3 class="font-bold text-[15px] text-white truncate">${escapeHtml(peer.name)}</h3>
                   ${item.isSavedFriend ? '<span class="px-1.5 py-0.2 text-[9px] font-bold bg-emerald-500/15 text-emerald-300 rounded border border-emerald-500/30 shrink-0">Friend</span>' : ''}
                 </div>
-                <span class="text-[11px] ${item.unread > 0 ? 'text-blue-400 font-bold' : 'text-kalah-muted'}">${lastMsg ? formatShortTime(lastMsg.timestamp) : ''}</span>
+                <span class="text-[11px] ${item.unread > 0 ? 'text-blue-400 font-bold' : 'text-kalah-muted'}">${lastMsg ? formatShortTime(lastMsg.timestamp) : (peer.online ? 'Online' : '')}</span>
               </div>
               <div class="flex items-center justify-between mt-0.5 gap-2">
                 <p class="text-xs text-kalah-muted truncate">${escapeHtml(previewText)}</p>
@@ -1816,23 +1867,23 @@
 
     function renderDirectoryList() {
       const container = document.getElementById('directory-list-container');
-      const query = (document.getElementById('directory-search-input').value || '').toLowerCase().trim();
+      const query = (document.getElementById('directory-search-input').value || '').trim();
       container.innerHTML = '';
 
       const mergedMap = {};
       Object.values(savedFriendsMap).forEach(sf => {
-        if (sf && sf.phone && sf.phone !== currentUser.phone) mergedMap[sf.phone] = { ...sf };
+        const p = normalizePhone(sf?.phone);
+        if (p && p !== currentUser.phone) mergedMap[p] = { ...sf, phone: p };
       });
       Object.values(allUsersMap).forEach(u => {
-        if (u && u.phone && u.phone !== currentUser.phone) mergedMap[u.phone] = { ...(mergedMap[u.phone] || {}), ...u };
+        const p = normalizePhone(u?.phone);
+        if (p && p !== currentUser.phone) mergedMap[p] = { ...(mergedMap[p] || {}), ...u, phone: p };
       });
 
-      const peers = Object.values(mergedMap).filter(u =>
-        (u.name || '').toLowerCase().includes(query) || (u.phone || '').includes(query)
-      );
+      const peers = Object.values(mergedMap).filter(u => matchesSearchQuery(u, query));
 
       if (peers.length === 0) {
-        container.innerHTML = `<p class="text-center text-xs text-kalah-muted py-6">No registered friends match "${escapeHtml(query)}".</p>`;
+        container.innerHTML = `<p class="text-center text-xs text-kalah-muted py-6">No registered users match "${escapeHtml(query)}".</p>`;
         return;
       }
 
@@ -1849,7 +1900,7 @@
             <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-11 h-11 rounded-full object-cover bg-kalah-surface shrink-0" />
             <div class="min-w-0">
               <h4 class="font-bold text-sm text-white truncate">${escapeHtml(peer.name)}</h4>
-              <p class="text-xs text-blue-400 font-medium">${peer.phone}</p>
+              <p class="text-xs text-blue-400 font-medium">${peer.phone} ${peer.online ? '• Online' : ''}</p>
             </div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
@@ -1865,8 +1916,9 @@
     }
 
     function openFriendChat(peer) {
+      const cleanPeer = { ...peer, phone: normalizePhone(peer.phone) };
       clearReplyTarget();
-      activeChatPeer = peer;
+      activeChatPeer = cleanPeer;
       updateChatRoomFriendButton();
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
@@ -1882,13 +1934,13 @@
       document.getElementById('mic-record-btn').classList.remove('hidden');
       toggleMicSendBtn();
 
-      document.getElementById('room-avatar').src = peer.avatar || getDefaultAvatar(peer.name);
-      document.getElementById('room-name').textContent = peer.name;
-      document.getElementById('room-status').textContent = peer.online ? 'Online' : `Phone: ${peer.phone}`;
+      document.getElementById('room-avatar').src = cleanPeer.avatar || getDefaultAvatar(cleanPeer.name);
+      document.getElementById('room-name').textContent = cleanPeer.name;
+      document.getElementById('room-status').textContent = cleanPeer.online ? 'Online' : `Phone: ${cleanPeer.phone}`;
 
-      const chatId = getChatId(currentUser.phone, peer.phone);
+      const chatId = getChatId(currentUser.phone, cleanPeer.phone);
       localStorage.setItem(`kalah_read_${chatId}`, Date.now().toString());
-      unreadCounts[peer.phone] = 0;
+      unreadCounts[cleanPeer.phone] = 0;
       renderChatList();
 
       if (activeChatListener) {
@@ -1899,7 +1951,7 @@
       const msgContainer = document.getElementById('messages-container');
       activeChatListener = db.ref(`${ROOT_NODE}/chats/${chatId}/messages`);
       activeChatListener.on('value', (snap) => {
-        if (!activeChatPeer || activeChatPeer === 'KALAH_AI' || activeChatPeer.isGroup || activeChatPeer.phone !== peer.phone) return;
+        if (!activeChatPeer || activeChatPeer === 'KALAH_AI' || activeChatPeer.isGroup || activeChatPeer.phone !== cleanPeer.phone) return;
         const msgs = snap.val() || {};
         currentMessagesCache = msgs;
         const now = Date.now();
@@ -1908,7 +1960,7 @@
         msgContainer.innerHTML = `
           <div class="flex justify-center my-2">
             <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
-              🔒 Messages vanish after 24h
+              🔒 Messages vanish after 24h • Chat ID: ${escapeHtml(chatId)}
             </span>
           </div>
         `;
@@ -1929,6 +1981,8 @@
         });
 
         msgContainer.scrollTop = msgContainer.scrollHeight;
+      }, (err) => {
+        showToast(`Chat read error: ${err.message}`, 'error');
       });
     }
 
@@ -2239,7 +2293,10 @@
         }
 
         const targetRef = getTargetMessagesRef();
-        if (!targetRef) return;
+        if (!targetRef) {
+          showToast('Chat target missing!', 'error');
+          return;
+        }
         const msgId = `m_${now}_${Math.random().toString(36).slice(2, 7)}`;
         const payload = {
           sender: currentUser.phone,
@@ -2256,6 +2313,9 @@
         }
         clearReplyTarget();
         await targetRef.child(msgId).set(payload);
+      } catch (err) {
+        console.error('Send error:', err);
+        showToast(`Message failed: ${err?.message || 'Firebase permission/network error'}`, 'error');
       } finally {
         setTimeout(() => {
           isSendingText = false;
@@ -2493,7 +2553,7 @@
       if (typeof targetPhoneOrGroup === 'object' && targetPhoneOrGroup.isGroup) {
         await db.ref(`${ROOT_NODE}/groups/${targetPhoneOrGroup.id}/messages`).push(payload);
       } else {
-        const peerPhone = typeof targetPhoneOrGroup === 'string' ? targetPhoneOrGroup : targetPhoneOrGroup.phone;
+        const peerPhone = typeof targetPhoneOrGroup === 'string' ? normalizePhone(targetPhoneOrGroup) : normalizePhone(targetPhoneOrGroup.phone);
         if (!peerPhone) return;
         const chatId = getChatId(currentUser.phone, peerPhone);
         await db.ref(`${ROOT_NODE}/chats/${chatId}/messages`).push(payload);
@@ -2522,7 +2582,7 @@
       callRoomRef.on('value', (snap) => {
         const parts = snap.val() || {};
         callParticipantsSet.add(currentUser.phone);
-        Object.keys(parts).forEach(p => callParticipantsSet.add(p));
+        Object.keys(parts).forEach(p => callParticipantsSet.add(normalizePhone(p)));
         updateParticipantsUI();
       });
     }
@@ -2530,7 +2590,7 @@
     async function startGroupVoiceCall() {
       if (!activeChatPeer || !activeChatPeer.isGroup) return;
       const group = activeChatPeer;
-      const members = (group.members || []).filter(p => p !== currentUser.phone);
+      const members = (group.members || []).map(normalizePhone).filter(p => p && p !== currentUser.phone);
       if (members.length === 0) {
         showToast('No other members in this group!', 'error');
         return;
@@ -2587,12 +2647,13 @@
     }
 
     async function inviteFriendToCurrentCall(targetPhone, silent = false) {
+      const cleanTarget = normalizePhone(targetPhone);
       if (!activeCallData) {
         showToast('No active call to add friend!', 'error');
         return;
       }
 
-      callParticipantsSet.add(targetPhone);
+      callParticipantsSet.add(cleanTarget);
       updateParticipantsUI();
       closeAddFriendToCallModal();
 
@@ -2602,15 +2663,15 @@
         name: currentUser.name,
         timestamp: Date.now()
       });
-      await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${targetPhone}`).set({
-        phone: targetPhone,
-        name: allUsersMap[targetPhone]?.name || targetPhone,
+      await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${cleanTarget}`).set({
+        phone: cleanTarget,
+        name: allUsersMap[cleanTarget]?.name || cleanTarget,
         invitedBy: currentUser.phone,
         timestamp: Date.now()
       });
 
-      const inviteId = `${currentUser.phone}_${Date.now()}_${targetPhone}`;
-      await db.ref(`${ROOT_NODE}/call_invites/${targetPhone}/${inviteId}`).set({
+      const inviteId = `${currentUser.phone}_${Date.now()}_${cleanTarget}`;
+      await db.ref(`${ROOT_NODE}/call_invites/${cleanTarget}/${inviteId}`).set({
         fromPhone: currentUser.phone,
         fromName: currentUser.name,
         fromAvatar: currentUser.avatar || '',
@@ -2618,10 +2679,10 @@
         timestamp: Date.now()
       });
 
-      await pushCallAlertMessage(targetPhone, `📞 ${currentUser.name} invited you to a voice call`);
+      await pushCallAlertMessage(cleanTarget, `📞 ${currentUser.name} invited you to a voice call`);
 
       if (!silent) {
-        const name = allUsersMap[targetPhone]?.name || targetPhone;
+        const name = allUsersMap[cleanTarget]?.name || cleanTarget;
         showToast(`Added ${name} to call!`, 'success');
       }
     }
@@ -2632,8 +2693,9 @@
         if (!inv || Date.now() - inv.timestamp > 60000) return;
         snap.ref.remove();
 
-        const callerPeer = allUsersMap[inv.fromPhone] || {
-          phone: inv.fromPhone,
+        const fromPhone = normalizePhone(inv.fromPhone);
+        const callerPeer = allUsersMap[fromPhone] || {
+          phone: fromPhone,
           name: inv.fromName,
           avatar: inv.fromAvatar || getDefaultAvatar(inv.fromName)
         };
@@ -2647,7 +2709,7 @@
         }
 
         if (activeCallData) {
-          callParticipantsSet.add(inv.fromPhone);
+          callParticipantsSet.add(fromPhone);
           updateParticipantsUI();
           showToast(`${inv.fromName} added to call`, 'info');
           return;
@@ -2663,6 +2725,7 @@
     async function startVoiceCall(targetPeer = null, customTitle = null, customRoomId = null) {
       const peer = targetPeer || (activeChatPeer && activeChatPeer !== 'KALAH_AI' && !activeChatPeer.isGroup ? activeChatPeer : null);
       if (!peer) return;
+      const cleanPeerPhone = normalizePhone(peer.phone);
 
       const callId = `${currentUser.phone}_${Date.now()}`;
       const roomKey = customRoomId || `room_${callId}`;
@@ -2674,19 +2737,19 @@
         return;
       }
 
-      callParticipantsSet = new Set([currentUser.phone, peer.phone]);
+      callParticipantsSet = new Set([currentUser.phone, cleanPeerPhone]);
       openCallUI(
         customTitle || peer.name,
-        peer.phone,
+        cleanPeerPhone,
         peer.avatar || getDefaultAvatar(peer.name),
         'Calling...',
         false
       );
       updateParticipantsUI();
       bindCallRoomParticipants(roomKey);
-      logCallRecord(customTitle || peer.name, peer.phone, 'Outgoing');
+      logCallRecord(customTitle || peer.name, cleanPeerPhone, 'Outgoing');
       if (!customRoomId) {
-        pushCallAlertMessage(peer.phone, `📞 Outgoing voice call to ${peer.name}`);
+        pushCallAlertMessage(cleanPeerPhone, `📞 Outgoing voice call to ${peer.name}`);
       }
 
       peerConnection = new RTCPeerConnection(rtcConfig);
@@ -2699,16 +2762,16 @@
         }
       };
 
-      const callRef = db.ref(`${ROOT_NODE}/calls/${peer.phone}/${callId}`);
-      activeCallData = { ref: callRef, peerPhone: peer.phone, callId, roomId: roomKey };
+      const callRef = db.ref(`${ROOT_NODE}/calls/${cleanPeerPhone}/${callId}`);
+      activeCallData = { ref: callRef, peerPhone: cleanPeerPhone, callId, roomId: roomKey };
 
       await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${currentUser.phone}`).set({
         phone: currentUser.phone,
         name: currentUser.name,
         timestamp: Date.now()
       });
-      await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${peer.phone}`).set({
-        phone: peer.phone,
+      await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${cleanPeerPhone}`).set({
+        phone: cleanPeerPhone,
         name: peer.name,
         timestamp: Date.now()
       });
@@ -2764,22 +2827,23 @@
         if (!callData || callData.status !== 'ringing') return;
         if (Date.now() - callData.timestamp > 45000) return;
 
+        const callerPhone = normalizePhone(callData.callerPhone);
         const roomKey = callData.roomId || `room_${callId}`;
         activeCallData = {
           ref: db.ref(`${ROOT_NODE}/calls/${currentUser.phone}/${callId}`),
           data: callData,
-          peerPhone: callData.callerPhone,
+          peerPhone: callerPhone,
           callId,
           roomId: roomKey
         };
-        callParticipantsSet = new Set([currentUser.phone, callData.callerPhone]);
+        callParticipantsSet = new Set([currentUser.phone, callerPhone]);
 
-        logCallRecord(callData.callerName, callData.callerPhone, 'Incoming');
-        pushCallAlertMessage(callData.callerPhone, `📞 Incoming voice call from ${callData.callerName}`);
+        logCallRecord(callData.callerName, callerPhone, 'Incoming');
+        pushCallAlertMessage(callerPhone, `📞 Incoming voice call from ${callData.callerName}`);
         triggerNotifyAlert(callData.callerName, 'Incoming voice call...', 'call');
         openCallUI(
           callData.callerName,
-          callData.callerPhone,
+          callerPhone,
           callData.callerAvatar || getDefaultAvatar(callData.callerName),
           'Incoming Kalah Voice Call...',
           true
@@ -2847,7 +2911,7 @@
 
     function declineIncomingCall() {
       if (activeCallData) {
-        const otherPhone = activeCallData.peerPhone || activeCallData.data?.callerPhone;
+        const otherPhone = activeCallData.peerPhone || normalizePhone(activeCallData.data?.callerPhone);
         if (otherPhone) {
           pushCallAlertMessage(otherPhone, `📞 Voice call declined`);
         }
@@ -2860,7 +2924,7 @@
 
     function endCurrentCall() {
       if (activeCallData) {
-        const otherPhone = activeCallData.peerPhone || activeCallData.data?.callerPhone;
+        const otherPhone = activeCallData.peerPhone || normalizePhone(activeCallData.data?.callerPhone);
         if (otherPhone) {
           pushCallAlertMessage(otherPhone, `📞 Voice call ended`);
         }
@@ -2985,7 +3049,7 @@
     }
 
     function quickCallByPhone(phone) {
-      const peer = allUsersMap[phone];
+      const peer = allUsersMap[normalizePhone(phone)];
       if (!peer) {
         showToast('Friend not found online', 'error');
         return;
