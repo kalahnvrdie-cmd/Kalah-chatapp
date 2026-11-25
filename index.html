@@ -181,7 +181,7 @@
 
         <div id="register-name-box" class="hidden space-y-1.5">
           <label class="text-xs font-medium text-kalah-muted ml-1">Display Name</label>
-          <input id="auth-name" type="text" placeholder="e.g. Kalah" class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
+          <input id="auth-name" type="text" placeholder="e.g. Kalah" oninput="syncDefaultAvatarPreview()" class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
         </div>
 
         <div class="space-y-1.5">
@@ -724,6 +724,7 @@
     let currentUser = null;
     let authMode = 'login';
     let tempRegAvatar = '';
+    let hasCustomRegAvatar = false;
     let allUsersMap = {};
     let savedFriendsMap = {};
     let allGroupsMap = {};
@@ -778,8 +779,10 @@
       ]
     };
 
-    function getDefaultAvatar(name = 'K') {
-      const letter = (name.trim()[0] || 'K').toUpperCase();
+    function getDefaultAvatar(label = 'U') {
+      const cleaned = String(label || '').trim();
+      const firstChar = cleaned ? Array.from(cleaned)[0].toUpperCase() : 'U';
+      const safeChar = firstChar.replace(/[<>&"']/g, '');
       return `data:image/svg+xml;utf8,${encodeURIComponent(
         `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
           <defs>
@@ -789,9 +792,26 @@
             </linearGradient>
           </defs>
           <rect width="120" height="120" rx="60" fill="url(#g)"/>
-          <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-size="50" font-weight="bold">${letter}</text>
+          <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Inter, sans-serif" font-size="50" font-weight="bold">${safeChar}</text>
         </svg>`
       )}`;
+    }
+
+    function resolveUserAvatar(userObj) {
+      if (userObj && typeof userObj.avatar === 'string' && userObj.avatar.trim()) {
+        return userObj.avatar.trim();
+      }
+      const fallbackSeed = (userObj && (userObj.name || userObj.phone)) || 'U';
+      return getDefaultAvatar(fallbackSeed);
+    }
+
+    function syncDefaultAvatarPreview() {
+      if (hasCustomRegAvatar) return;
+      const nameVal = document.getElementById('auth-name')?.value || '';
+      const phoneVal = document.getElementById('auth-phone')?.value || '';
+      tempRegAvatar = getDefaultAvatar(nameVal || phoneVal || 'U');
+      const regPreview = document.getElementById('reg-avatar-preview');
+      if (regPreview) regPreview.src = tempRegAvatar;
     }
 
     function showToast(message, type = 'info') {
@@ -1040,7 +1060,7 @@
 
       renderCuteEmojiGrid();
       applySavedWallpaper();
-      tempRegAvatar = getDefaultAvatar('K');
+      tempRegAvatar = getDefaultAvatar('U');
       const regPreview = document.getElementById('reg-avatar-preview');
       if (regPreview) regPreview.src = tempRegAvatar;
 
@@ -1060,6 +1080,7 @@
     function showAuthScreen() {
       document.getElementById('auth-screen').classList.remove('hidden');
       document.getElementById('main-app').classList.add('hidden');
+      syncDefaultAvatarPreview();
     }
 
     function setAuthMode(mode) {
@@ -1076,6 +1097,7 @@
         regBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition';
         loginBtn.className = 'flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition';
         regFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
+        syncDefaultAvatarPreview();
       }
     }
 
@@ -1105,6 +1127,7 @@
           document.getElementById(previewImgId).src = compressedDataUrl;
 
           if (context === 'reg') {
+            hasCustomRegAvatar = true;
             tempRegAvatar = compressedDataUrl;
           } else if (context === 'edit' && currentUser) {
             currentUser.avatar = compressedDataUrl;
@@ -1150,8 +1173,16 @@
             showToast('Incorrect PIN! Try again.', 'error');
             return;
           }
-          currentUser = { ...existingData, phone: normalizePhone(existingData.phone || phone) };
-          await userRef.update({ phone: currentUser.phone, online: true, lastSeen: Date.now() });
+          const cleanName = existingData.name || phone;
+          currentUser = {
+            ...existingData,
+            phone: normalizePhone(existingData.phone || phone),
+            name: cleanName,
+            avatar: existingData.avatar || getDefaultAvatar(cleanName),
+            online: true,
+            lastSeen: Date.now()
+          };
+          await userRef.update({ phone: currentUser.phone, avatar: currentUser.avatar, online: true, lastSeen: Date.now() });
         } else {
           const name = document.getElementById('auth-name').value.trim();
           const bio = document.getElementById('auth-bio').value.trim() || 'Available on Kalah Chat ⚡';
@@ -1169,7 +1200,7 @@
             pin,
             name,
             bio,
-            avatar: tempRegAvatar || getDefaultAvatar(name),
+            avatar: hasCustomRegAvatar ? tempRegAvatar : getDefaultAvatar(name),
             online: true,
             lastSeen: Date.now()
           };
@@ -1210,18 +1241,21 @@
 
     function bootMainApp() {
       currentUser.phone = normalizePhone(currentUser.phone);
+      if (!currentUser.avatar) {
+        currentUser.avatar = getDefaultAvatar(currentUser.name || currentUser.phone);
+      }
       document.getElementById('auth-screen').classList.add('hidden');
       document.getElementById('main-app').classList.remove('hidden');
       applySavedWallpaper();
 
-      document.getElementById('profile-avatar-img').src = currentUser.avatar || getDefaultAvatar(currentUser.name);
+      document.getElementById('profile-avatar-img').src = resolveUserAvatar(currentUser);
       document.getElementById('profile-display-name').textContent = currentUser.name;
       document.getElementById('profile-display-phone').textContent = currentUser.phone;
       document.getElementById('edit-name-input').value = currentUser.name;
       document.getElementById('edit-bio-input').value = currentUser.bio || '';
 
       const myUserRef = db.ref(`${ROOT_NODE}/users/${currentUser.phone}`);
-      myUserRef.update({ phone: currentUser.phone, online: true, lastSeen: Date.now() }).catch(() => {});
+      myUserRef.update({ phone: currentUser.phone, avatar: currentUser.avatar, online: true, lastSeen: Date.now() }).catch(() => {});
       myUserRef.onDisconnect().update({ online: false, lastSeen: Date.now() });
 
       try {
@@ -1307,7 +1341,7 @@
       const record = {
         phone: cleanPhone,
         name: source.name || cleanPhone,
-        avatar: source.avatar || '',
+        avatar: resolveUserAvatar(source),
         bio: source.bio || '',
         addedAt: Date.now()
       };
@@ -1416,9 +1450,9 @@
           };
           row.innerHTML = `
             <div class="flex items-center gap-3">
-              <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-9 h-9 rounded-full object-cover bg-kalah-surface" />
+              <img src="${resolveUserAvatar(peer)}" class="w-9 h-9 rounded-full object-cover bg-kalah-surface" />
               <div>
-                <p class="text-sm font-bold text-white">${escapeHtml(peer.name)}</p>
+                <p class="text-sm font-bold text-white">${escapeHtml(peer.name || peer.phone)}</p>
                 <p class="text-[11px] text-kalah-muted">${peer.phone}</p>
               </div>
             </div>
@@ -1543,7 +1577,7 @@
       document.getElementById('mic-record-btn').classList.remove('hidden');
       toggleMicSendBtn();
 
-      document.getElementById('room-avatar').src = group.avatar || getDefaultAvatar(group.name);
+      document.getElementById('room-avatar').src = resolveUserAvatar(group);
       document.getElementById('room-name').textContent = group.name;
       document.getElementById('room-status').textContent = `${(group.members || []).length} members • Group`;
 
@@ -1632,7 +1666,7 @@
                   notifiedMsgIds.add(msgId);
                   const peerObj = allUsersMap[peerPhone] || savedFriendsMap[peerPhone] || { phone: peerPhone, name: peerPhone };
                   const bodyText = msg.deleted ? 'This message was deleted' : getPreviewLabel(msg);
-                  triggerNotifyAlert(peerObj.name, bodyText, 'message', () => openFriendChat(peerObj));
+                  triggerNotifyAlert(peerObj.name || peerPhone, bodyText, 'message', () => openFriendChat(peerObj));
                 }
               }
             });
@@ -1799,7 +1833,7 @@
           row.onclick = () => openGroupChat(g);
           row.innerHTML = `
             <div class="relative shrink-0">
-              <img src="${g.avatar || getDefaultAvatar(g.name)}" alt="${escapeHtml(g.name)}" class="w-[52px] h-[52px] rounded-full object-cover bg-kalah-card border border-kalah-border" />
+              <img src="${resolveUserAvatar(g)}" alt="${escapeHtml(g.name)}" class="w-[52px] h-[52px] rounded-full object-cover bg-kalah-card border border-kalah-border" />
               <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-kalah-blue border-2 border-kalah-bg flex items-center justify-center">
                 <i data-lucide="users" class="w-2.5 h-2.5 text-white"></i>
               </span>
@@ -1818,6 +1852,7 @@
           container.appendChild(row);
         } else {
           const peer = item.data;
+          const displayName = peer.name || peer.phone;
           const lastMsg = lastMessagesMap[peer.phone];
           let previewText = `${peer.phone} • ${peer.bio || 'Ready to chat'}`;
           if (lastMsg) {
@@ -1829,13 +1864,13 @@
           row.onclick = () => openFriendChat(peer);
           row.innerHTML = `
             <div class="relative shrink-0">
-              <img src="${peer.avatar || getDefaultAvatar(peer.name)}" alt="${escapeHtml(peer.name)}" class="w-[52px] h-[52px] rounded-full object-cover bg-kalah-card border border-kalah-border" />
+              <img src="${resolveUserAvatar(peer)}" alt="${escapeHtml(displayName)}" class="w-[52px] h-[52px] rounded-full object-cover bg-kalah-card border border-kalah-border" />
               ${peer.online ? '<span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-kalah-bg"></span>' : ''}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1.5 min-w-0">
-                  <h3 class="font-bold text-[15px] text-white truncate">${escapeHtml(peer.name)}</h3>
+                  <h3 class="font-bold text-[15px] text-white truncate">${escapeHtml(displayName)}</h3>
                   ${item.isSavedFriend ? '<span class="px-1.5 py-0.2 text-[9px] font-bold bg-emerald-500/15 text-emerald-300 rounded border border-emerald-500/30 shrink-0">Friend</span>' : ''}
                 </div>
                 <span class="text-[11px] ${item.unread > 0 ? 'text-blue-400 font-bold' : 'text-kalah-muted'}">${lastMsg ? formatShortTime(lastMsg.timestamp) : (peer.online ? 'Online' : '')}</span>
@@ -1888,6 +1923,7 @@
       }
 
       peers.forEach(peer => {
+        const displayName = peer.name || peer.phone;
         const isSaved = Boolean(savedFriendsMap[peer.phone]);
         const item = document.createElement('div');
         item.className = 'p-3 rounded-2xl bg-kalah-card/70 hover:bg-kalah-card border border-kalah-border/50 flex items-center justify-between gap-2 cursor-pointer transition';
@@ -1897,9 +1933,9 @@
         };
         item.innerHTML = `
           <div class="flex items-center gap-3 min-w-0">
-            <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-11 h-11 rounded-full object-cover bg-kalah-surface shrink-0" />
+            <img src="${resolveUserAvatar(peer)}" class="w-11 h-11 rounded-full object-cover bg-kalah-surface shrink-0" />
             <div class="min-w-0">
-              <h4 class="font-bold text-sm text-white truncate">${escapeHtml(peer.name)}</h4>
+              <h4 class="font-bold text-sm text-white truncate">${escapeHtml(displayName)}</h4>
               <p class="text-xs text-blue-400 font-medium">${peer.phone} ${peer.online ? '• Online' : ''}</p>
             </div>
           </div>
@@ -1916,7 +1952,7 @@
     }
 
     function openFriendChat(peer) {
-      const cleanPeer = { ...peer, phone: normalizePhone(peer.phone) };
+      const cleanPeer = { ...peer, phone: normalizePhone(peer.phone), name: peer.name || normalizePhone(peer.phone) };
       clearReplyTarget();
       activeChatPeer = cleanPeer;
       updateChatRoomFriendButton();
@@ -1934,7 +1970,7 @@
       document.getElementById('mic-record-btn').classList.remove('hidden');
       toggleMicSendBtn();
 
-      document.getElementById('room-avatar').src = cleanPeer.avatar || getDefaultAvatar(cleanPeer.name);
+      document.getElementById('room-avatar').src = resolveUserAvatar(cleanPeer);
       document.getElementById('room-name').textContent = cleanPeer.name;
       document.getElementById('room-status').textContent = cleanPeer.online ? 'Online' : `Phone: ${cleanPeer.phone}`;
 
@@ -2622,13 +2658,14 @@
         listEl.innerHTML = `<p class="text-xs text-kalah-muted text-center py-6">No additional friends available to add.</p>`;
       } else {
         candidates.forEach(peer => {
+          const displayName = peer.name || peer.phone;
           const row = document.createElement('div');
           row.className = 'p-3 rounded-2xl bg-kalah-card/80 border border-kalah-border flex items-center justify-between gap-3';
           row.innerHTML = `
             <div class="flex items-center gap-3 min-w-0">
-              <img src="${peer.avatar || getDefaultAvatar(peer.name)}" class="w-10 h-10 rounded-full object-cover bg-kalah-surface shrink-0" />
+              <img src="${resolveUserAvatar(peer)}" class="w-10 h-10 rounded-full object-cover bg-kalah-surface shrink-0" />
               <div class="min-w-0">
-                <p class="text-sm font-bold text-white truncate">${escapeHtml(peer.name)}</p>
+                <p class="text-sm font-bold text-white truncate">${escapeHtml(displayName)}</p>
                 <p class="text-[11px] text-kalah-muted">${peer.phone}</p>
               </div>
             </div>
@@ -2674,7 +2711,7 @@
       await db.ref(`${ROOT_NODE}/call_invites/${cleanTarget}/${inviteId}`).set({
         fromPhone: currentUser.phone,
         fromName: currentUser.name,
-        fromAvatar: currentUser.avatar || '',
+        fromAvatar: resolveUserAvatar(currentUser),
         roomId: roomKey,
         timestamp: Date.now()
       });
@@ -2726,6 +2763,7 @@
       const peer = targetPeer || (activeChatPeer && activeChatPeer !== 'KALAH_AI' && !activeChatPeer.isGroup ? activeChatPeer : null);
       if (!peer) return;
       const cleanPeerPhone = normalizePhone(peer.phone);
+      const displayPeerName = peer.name || cleanPeerPhone;
 
       const callId = `${currentUser.phone}_${Date.now()}`;
       const roomKey = customRoomId || `room_${callId}`;
@@ -2739,17 +2777,17 @@
 
       callParticipantsSet = new Set([currentUser.phone, cleanPeerPhone]);
       openCallUI(
-        customTitle || peer.name,
+        customTitle || displayPeerName,
         cleanPeerPhone,
-        peer.avatar || getDefaultAvatar(peer.name),
+        resolveUserAvatar(peer),
         'Calling...',
         false
       );
       updateParticipantsUI();
       bindCallRoomParticipants(roomKey);
-      logCallRecord(customTitle || peer.name, cleanPeerPhone, 'Outgoing');
+      logCallRecord(customTitle || displayPeerName, cleanPeerPhone, 'Outgoing');
       if (!customRoomId) {
-        pushCallAlertMessage(cleanPeerPhone, `📞 Outgoing voice call to ${peer.name}`);
+        pushCallAlertMessage(cleanPeerPhone, `📞 Outgoing voice call to ${displayPeerName}`);
       }
 
       peerConnection = new RTCPeerConnection(rtcConfig);
@@ -2772,7 +2810,7 @@
       });
       await db.ref(`${ROOT_NODE}/call_rooms/${roomKey}/participants/${cleanPeerPhone}`).set({
         phone: cleanPeerPhone,
-        name: peer.name,
+        name: displayPeerName,
         timestamp: Date.now()
       });
 
@@ -2788,7 +2826,7 @@
       await callRef.set({
         callerPhone: currentUser.phone,
         callerName: currentUser.name,
-        callerAvatar: currentUser.avatar || '',
+        callerAvatar: resolveUserAvatar(currentUser),
         roomId: roomKey,
         offer: { type: offer.type, sdp: offer.sdp },
         status: 'ringing',
@@ -2828,6 +2866,7 @@
         if (Date.now() - callData.timestamp > 45000) return;
 
         const callerPhone = normalizePhone(callData.callerPhone);
+        const callerName = callData.callerName || callerPhone;
         const roomKey = callData.roomId || `room_${callId}`;
         activeCallData = {
           ref: db.ref(`${ROOT_NODE}/calls/${currentUser.phone}/${callId}`),
@@ -2838,13 +2877,13 @@
         };
         callParticipantsSet = new Set([currentUser.phone, callerPhone]);
 
-        logCallRecord(callData.callerName, callerPhone, 'Incoming');
-        pushCallAlertMessage(callerPhone, `📞 Incoming voice call from ${callData.callerName}`);
-        triggerNotifyAlert(callData.callerName, 'Incoming voice call...', 'call');
+        logCallRecord(callerName, callerPhone, 'Incoming');
+        pushCallAlertMessage(callerPhone, `📞 Incoming voice call from ${callerName}`);
+        triggerNotifyAlert(callerName, 'Incoming voice call...', 'call');
         openCallUI(
-          callData.callerName,
+          callerName,
           callerPhone,
-          callData.callerAvatar || getDefaultAvatar(callData.callerName),
+          callData.callerAvatar || getDefaultAvatar(callerName),
           'Incoming Kalah Voice Call...',
           true
         );
@@ -3147,8 +3186,7 @@
       const candidateModels = [
         remoteGeminiModel,
         'gemini-2.5-flash',
-        'gemini-3.5-flash',
-        'gemini-3.8-flash'
+        'gemini-2.0-flash'
       ].filter(Boolean);
 
       const uniqueModels = [...new Set(candidateModels)];
@@ -3156,7 +3194,7 @@
 
       for (const modelName of uniqueModels) {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 12000);
+        const timer = setTimeout(() => controller.abort(), 25000);
 
         try {
           const response = await fetch(
@@ -3188,7 +3226,7 @@
         } catch (err) {
           clearTimeout(timer);
           lastErrMsg = err?.name === 'AbortError'
-            ? 'Signal / connection slow (Request timed out)'
+            ? 'Connection slow (25s timeout) — check mobile signal'
             : (err?.message || 'Network error');
         }
       }
