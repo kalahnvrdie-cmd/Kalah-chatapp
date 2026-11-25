@@ -214,6 +214,197 @@
       </p>
     </div>
   </div>
+    <!-- ==================== 3B. CUTE EMOJI PICKER & DELETE POPOVER ==================== -->
+    <div id="msg-action-modal" onclick="closeMsgActionModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end justify-center hidden">
+      <div onclick="event.stopPropagation()" class="bg-kalah-surface border-t border-kalah-border w-full max-w-lg rounded-t-3xl p-5 space-y-4 shadow-2xl">
+        <p class="text-xs font-bold text-kalah-muted uppercase tracking-wider text-center">Pick a Cute Emoji</p>
+        <div id="cute-emoji-grid" class="grid grid-cols-6 gap-2 bg-kalah-card rounded-2xl p-3 border border-kalah-border/70"></div>
+
+        <div class="space-y-2">
+          <button id="btn-delete-everyone" onclick="deleteSelectedMessageForEveryone()" class="w-full py-3 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-sm font-bold flex items-center justify-center gap-2 transition hidden">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>Delete for Everyone</span>
+          </button>
+          <button onclick="closeMsgActionModal()" class="w-full py-2.5 rounded-2xl bg-kalah-card text-kalah-muted text-xs font-bold">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 3C. ONE-TIME PHOTO VIEWER MODAL ==================== -->
+    <div id="view-once-modal" class="fixed inset-0 z-[70] bg-black/95 flex flex-col justify-between p-4 hidden">
+      <div class="flex items-center justify-between text-white">
+        <span class="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-bold text-blue-300">1x One-Time Photo</span>
+        <button onclick="closeViewOnceModal()" class="p-2 rounded-full bg-white/10 text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="my-auto flex justify-center">
+        <img id="view-once-img" src="" alt="One-Time Photo" class="max-h-[75dvh] max-w-full rounded-2xl object-contain shadow-2xl" />
+      </div>
+      <p class="text-center text-xs text-kalah-muted">Closing will lock this photo permanently</p>
+    </div>
+
+    <!-- ==================== 3D. CUTE MINI GAME (KALAH ORB TAP) ==================== -->
+    <div id="orb-game-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
+              <span>Kalah Orb Tap</span>
+            </h3>
+            <p class="text-[11px] text-kalah-muted">Score: <span id="orb-score-val" class="text-blue-400 font-bold">0</span> • Time: <span id="orb-time-val" class="text-cyan-300 font-bold">20s</span></p>
+          </div>
+          <button onclick="closeOrbGame()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div id="orb-arena" class="relative h-56 rounded-2xl border border-kalah-border bg-gradient-to-b from-[#07142b] to-[#040914] overflow-hidden flex items-center justify-center">
+          <button id="tap-orb-btn" onclick="hitFloatingOrb()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-300 shadow-lg shadow-cyan-400/40 flex items-center justify-center text-xl font-bold text-[#050a14] active:scale-90 transition cursor-pointer">
+            ✨
+          </button>
+        </div>
+
+        <div class="flex gap-2">
+          <button onclick="startOrbGameRound()" class="flex-1 py-2.5 rounded-2xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-white text-xs font-bold transition">
+            Play Again
+          </button>
+          <button onclick="sendOrbScoreToChat()" class="flex-1 py-2.5 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-white text-xs font-bold transition">
+            Send Score
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 4. FIND FRIENDS MODAL ==================== -->
+    <div id="friends-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[82dvh] flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between pb-3 border-b border-kalah-border">
+          <div>
+            <h3 class="text-base font-bold text-white">Find Friends on Kalah Chat</h3>
+            <p class="text-xs text-kalah-muted">Search by phone number or tap a friend to chat</p>
+          </div>
+          <button onclick="closeFriendsModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div class="mt-3 relative">
+          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input id="directory-search-input" type="text" oninput="renderDirectoryList()" placeholder="Enter friend's phone number or name..." class="w-full bg-kalah-card border border-kalah-border rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+        </div>
+
+        <div id="directory-list-container" class="flex-1 overflow-y-auto mt-3 space-y-2 pr-1"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 4B. CREATE GROUP MODAL ==================== -->
+    <div id="create-group-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85dvh] flex flex-col shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
+          <div>
+            <h3 class="text-base font-bold text-white">Create New Group</h3>
+            <p class="text-xs text-kalah-muted">Select friends & set group name (24h auto-delete)</p>
+          </div>
+          <button onclick="closeCreateGroupModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-kalah-muted uppercase">Group Name</label>
+          <input id="new-group-name-input" type="text" placeholder="e.g. Kalah Squad" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-2xl px-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
+        </div>
+
+        <div class="flex-1 overflow-y-auto space-y-2 pr-1">
+          <p class="text-xs font-semibold text-kalah-muted uppercase">Select Members</p>
+          <div id="group-members-checkbox-list" class="space-y-2"></div>
+        </div>
+
+        <button onclick="createNewGroup()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright text-white font-bold text-sm shadow-lg transition">
+          Create Group
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 4C. ADD FRIEND TO CALL MODAL ==================== -->
+    <div id="add-to-call-modal" class="fixed inset-0 z-[65] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
+      <div class="bg-kalah-surface border border-kalah-border w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[75dvh] flex flex-col shadow-2xl space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
+          <div>
+            <h3 class="text-sm font-bold text-white">Add Friend to Call</h3>
+            <p class="text-[11px] text-kalah-muted">Invite another friend into this call</p>
+          </div>
+          <button onclick="closeAddFriendToCallModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="add-call-friends-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+      </div>
+    </div>
+
+    <!-- ==================== 5. WHATSAPP-STYLE VOICE & GROUP CALL SCREEN ==================== -->
+    <div id="call-overlay" class="fixed inset-0 z-50 bg-gradient-to-b from-[#07152e] via-[#050c1a] to-[#030710] flex flex-col justify-between p-8 hidden">
+      <div class="text-center space-y-1 pt-4">
+        <div class="flex items-center justify-center gap-1.5 text-xs text-blue-300/80 font-medium">
+          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+          <span id="call-header-label">Kalah End-to-End Encrypted Voice</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center text-center space-y-5 my-auto">
+        <div class="relative">
+          <div id="call-pulse-ring" class="absolute inset-0 rounded-full bg-kalah-blueBright/30 animate-pulse-ring"></div>
+          <img id="call-peer-avatar" src="" alt="Caller" class="w-32 h-32 rounded-full object-cover border-4 border-kalah-blueBright/60 relative z-10 bg-kalah-card shadow-2xl" />
+        </div>
+        <div class="space-y-1.5">
+          <h2 id="call-peer-name" class="text-2xl font-extrabold text-white tracking-tight">Friend Name</h2>
+          <p id="call-peer-phone" class="text-xs text-kalah-muted font-medium">+94 77 000 0000</p>
+          <p id="call-status-text" class="text-sm font-semibold text-blue-400 pt-1">Calling...</p>
+          <p id="call-participants-list" class="text-[11px] text-cyan-300/90 pt-1 hidden"></p>
+        </div>
+      </div>
+
+      <audio id="remote-audio" autoplay playsinline></audio>
+
+      <div class="pb-6">
+        <div id="incoming-call-controls" class="flex items-center justify-around max-w-xs mx-auto hidden">
+          <button onclick="declineIncomingCall()" class="flex flex-col items-center gap-2">
+            <div class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/40 transition">
+              <i data-lucide="phone-off" class="w-7 h-7"></i>
+            </div>
+            <span class="text-xs font-semibold text-red-300">Decline</span>
+          </button>
+
+          <button onclick="acceptIncomingCall()" class="flex flex-col items-center gap-2">
+            <div class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/40 animate-bounce">
+              <i data-lucide="phone" class="w-7 h-7"></i>
+            </div>
+            <span class="text-xs font-semibold text-emerald-300">Accept</span>
+          </button>
+        </div>
+
+        <div id="active-call-controls" class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-4 flex items-center justify-around max-w-xs mx-auto shadow-2xl">
+          <button onclick="openAddFriendToCallModal()" id="btn-add-friend-call" title="Add Friend" class="p-3.5 rounded-full bg-kalah-card text-cyan-300 hover:bg-kalah-hover transition">
+            <i data-lucide="user-plus" class="w-5 h-5"></i>
+          </button>
+          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" title="Speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="volume-2" class="w-5 h-5"></i>
+          </button>
+          <button onclick="toggleCallMute()" id="btn-call-mute" title="Mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
+            <i data-lucide="mic" class="w-5 h-5"></i>
+          </button>
+          <button onclick="endCurrentCall()" title="End Call" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
+            <i data-lucide="phone-off" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
   <!-- ==================== 2. MAIN APP SHELL ==================== -->
   <div id="main-app" class="h-[100dvh] w-full max-w-lg mx-auto bg-kalah-bg flex flex-col relative hidden border-x border-kalah-border/40">
 
@@ -509,197 +700,6 @@
         </button>
       </div>
     </div>
-    <!-- ==================== 3B. CUTE EMOJI PICKER & DELETE POPOVER ==================== -->
-    <div id="msg-action-modal" onclick="closeMsgActionModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end justify-center hidden">
-      <div onclick="event.stopPropagation()" class="bg-kalah-surface border-t border-kalah-border w-full max-w-lg rounded-t-3xl p-5 space-y-4 shadow-2xl">
-        <p class="text-xs font-bold text-kalah-muted uppercase tracking-wider text-center">Pick a Cute Emoji</p>
-        <div id="cute-emoji-grid" class="grid grid-cols-6 gap-2 bg-kalah-card rounded-2xl p-3 border border-kalah-border/70"></div>
-
-        <div class="space-y-2">
-          <button id="btn-delete-everyone" onclick="deleteSelectedMessageForEveryone()" class="w-full py-3 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-sm font-bold flex items-center justify-center gap-2 transition hidden">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-            <span>Delete for Everyone</span>
-          </button>
-          <button onclick="closeMsgActionModal()" class="w-full py-2.5 rounded-2xl bg-kalah-card text-kalah-muted text-xs font-bold">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 3C. ONE-TIME PHOTO VIEWER MODAL ==================== -->
-    <div id="view-once-modal" class="fixed inset-0 z-[70] bg-black/95 flex flex-col justify-between p-4 hidden">
-      <div class="flex items-center justify-between text-white">
-        <span class="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-bold text-blue-300">1x One-Time Photo</span>
-        <button onclick="closeViewOnceModal()" class="p-2 rounded-full bg-white/10 text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <div class="my-auto flex justify-center">
-        <img id="view-once-img" src="" alt="One-Time Photo" class="max-h-[75dvh] max-w-full rounded-2xl object-contain shadow-2xl" />
-      </div>
-      <p class="text-center text-xs text-kalah-muted">Closing will lock this photo permanently</p>
-    </div>
-
-    <!-- ==================== 3D. CUTE MINI GAME (KALAH ORB TAP) ==================== -->
-    <div id="orb-game-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
-              <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
-              <span>Kalah Orb Tap</span>
-            </h3>
-            <p class="text-[11px] text-kalah-muted">Score: <span id="orb-score-val" class="text-blue-400 font-bold">0</span> • Time: <span id="orb-time-val" class="text-cyan-300 font-bold">20s</span></p>
-          </div>
-          <button onclick="closeOrbGame()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <div id="orb-arena" class="relative h-56 rounded-2xl border border-kalah-border bg-gradient-to-b from-[#07142b] to-[#040914] overflow-hidden flex items-center justify-center">
-          <button id="tap-orb-btn" onclick="hitFloatingOrb()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-300 shadow-lg shadow-cyan-400/40 flex items-center justify-center text-xl font-bold text-[#050a14] active:scale-90 transition cursor-pointer">
-            ✨
-          </button>
-        </div>
-
-        <div class="flex gap-2">
-          <button onclick="startOrbGameRound()" class="flex-1 py-2.5 rounded-2xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-white text-xs font-bold transition">
-            Play Again
-          </button>
-          <button onclick="sendOrbScoreToChat()" class="flex-1 py-2.5 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-white text-xs font-bold transition">
-            Send Score
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 4. FIND FRIENDS MODAL ==================== -->
-    <div id="friends-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[82dvh] flex flex-col shadow-2xl">
-        <div class="flex items-center justify-between pb-3 border-b border-kalah-border">
-          <div>
-            <h3 class="text-base font-bold text-white">Find Friends on Kalah Chat</h3>
-            <p class="text-xs text-kalah-muted">Search by phone number or tap a friend to chat</p>
-          </div>
-          <button onclick="closeFriendsModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <div class="mt-3 relative">
-          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-          <input id="directory-search-input" type="text" oninput="renderDirectoryList()" placeholder="Enter friend's phone number or name..." class="w-full bg-kalah-card border border-kalah-border rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-        </div>
-
-        <div id="directory-list-container" class="flex-1 overflow-y-auto mt-3 space-y-2 pr-1"></div>
-      </div>
-    </div>
-
-    <!-- ==================== 4B. CREATE GROUP MODAL ==================== -->
-    <div id="create-group-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85dvh] flex flex-col shadow-2xl space-y-4">
-        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
-          <div>
-            <h3 class="text-base font-bold text-white">Create New Group</h3>
-            <p class="text-xs text-kalah-muted">Select friends & set group name (24h auto-delete)</p>
-          </div>
-          <button onclick="closeCreateGroupModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <div>
-          <label class="text-xs font-semibold text-kalah-muted uppercase">Group Name</label>
-          <input id="new-group-name-input" type="text" placeholder="e.g. Kalah Squad" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-2xl px-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-        </div>
-
-        <div class="flex-1 overflow-y-auto space-y-2 pr-1">
-          <p class="text-xs font-semibold text-kalah-muted uppercase">Select Members</p>
-          <div id="group-members-checkbox-list" class="space-y-2"></div>
-        </div>
-
-        <button onclick="createNewGroup()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright text-white font-bold text-sm shadow-lg transition">
-          Create Group
-        </button>
-      </div>
-    </div>
-
-    <!-- ==================== 4C. ADD FRIEND TO CALL MODAL ==================== -->
-    <div id="add-to-call-modal" class="fixed inset-0 z-[65] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[75dvh] flex flex-col shadow-2xl space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
-          <div>
-            <h3 class="text-sm font-bold text-white">Add Friend to Call</h3>
-            <p class="text-[11px] text-kalah-muted">Invite another friend into this call</p>
-          </div>
-          <button onclick="closeAddFriendToCallModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-        <div id="add-call-friends-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
-      </div>
-    </div>
-
-    <!-- ==================== 5. WHATSAPP-STYLE VOICE & GROUP CALL SCREEN ==================== -->
-    <div id="call-overlay" class="fixed inset-0 z-50 bg-gradient-to-b from-[#07152e] via-[#050c1a] to-[#030710] flex flex-col justify-between p-8 hidden">
-      <div class="text-center space-y-1 pt-4">
-        <div class="flex items-center justify-center gap-1.5 text-xs text-blue-300/80 font-medium">
-          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-          <span id="call-header-label">Kalah End-to-End Encrypted Voice</span>
-        </div>
-      </div>
-
-      <div class="flex flex-col items-center text-center space-y-5 my-auto">
-        <div class="relative">
-          <div id="call-pulse-ring" class="absolute inset-0 rounded-full bg-kalah-blueBright/30 animate-pulse-ring"></div>
-          <img id="call-peer-avatar" src="" alt="Caller" class="w-32 h-32 rounded-full object-cover border-4 border-kalah-blueBright/60 relative z-10 bg-kalah-card shadow-2xl" />
-        </div>
-        <div class="space-y-1.5">
-          <h2 id="call-peer-name" class="text-2xl font-extrabold text-white tracking-tight">Friend Name</h2>
-          <p id="call-peer-phone" class="text-xs text-kalah-muted font-medium">+94 77 000 0000</p>
-          <p id="call-status-text" class="text-sm font-semibold text-blue-400 pt-1">Calling...</p>
-          <p id="call-participants-list" class="text-[11px] text-cyan-300/90 pt-1 hidden"></p>
-        </div>
-      </div>
-
-      <audio id="remote-audio" autoplay playsinline></audio>
-
-      <div class="pb-6">
-        <div id="incoming-call-controls" class="flex items-center justify-around max-w-xs mx-auto hidden">
-          <button onclick="declineIncomingCall()" class="flex flex-col items-center gap-2">
-            <div class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/40 transition">
-              <i data-lucide="phone-off" class="w-7 h-7"></i>
-            </div>
-            <span class="text-xs font-semibold text-red-300">Decline</span>
-          </button>
-
-          <button onclick="acceptIncomingCall()" class="flex flex-col items-center gap-2">
-            <div class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/40 animate-bounce">
-              <i data-lucide="phone" class="w-7 h-7"></i>
-            </div>
-            <span class="text-xs font-semibold text-emerald-300">Accept</span>
-          </button>
-        </div>
-
-        <div id="active-call-controls" class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-4 flex items-center justify-around max-w-xs mx-auto shadow-2xl">
-          <button onclick="openAddFriendToCallModal()" id="btn-add-friend-call" title="Add Friend" class="p-3.5 rounded-full bg-kalah-card text-cyan-300 hover:bg-kalah-hover transition">
-            <i data-lucide="user-plus" class="w-5 h-5"></i>
-          </button>
-          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" title="Speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="volume-2" class="w-5 h-5"></i>
-          </button>
-          <button onclick="toggleCallMute()" id="btn-call-mute" title="Mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="mic" class="w-5 h-5"></i>
-          </button>
-          <button onclick="endCurrentCall()" title="End Call" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
-            <i data-lucide="phone-off" class="w-6 h-6"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDyVqsqYbsVr0ffvo_lUThdSHR6DlAV-2M",
@@ -727,6 +727,7 @@
     let authMode = 'login';
     let tempRegAvatar = '';
     let allUsersMap = {};
+    let savedFriendsMap = {};
     let allGroupsMap = {};
     let selectedGroupMembers = new Set();
     let activeChatPeer = null;
@@ -745,6 +746,8 @@
     let replyTargetMsg = null;
     let viewOnceMode = false;
     let isSendingText = false;
+    let lastSentFingerprint = '';
+    let lastSentTimestamp = 0;
     let pendingNotifyAction = null;
     const notifiedMsgIds = new Set();
     const appBootTime = Date.now();
@@ -1159,7 +1162,7 @@
         showToast(`Welcome, ${currentUser.name}!`, 'success');
       } catch (err) {
         console.error(err);
-        showToast('Firebase connection error. Check internet!', 'error');
+        showToast('Firebase connection error. Check database rules!', 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<span>Continue to Kalah Chat</span>`;
@@ -1195,6 +1198,23 @@
 
       fetchHiddenGeminiKey();
 
+      // Load local cached saved friends immediately so they never disappear
+      try {
+        const cachedSaved = localStorage.getItem(`kalah_saved_friends_${currentUser.phone}`);
+        if (cachedSaved) savedFriendsMap = JSON.parse(cachedSaved);
+      } catch (e) {}
+
+      // Sync permanent saved friends from Firebase
+      db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}`).on('value', (snap) => {
+        savedFriendsMap = snap.val() || {};
+        try {
+          localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
+        } catch (e) {}
+        renderChatList();
+        renderDirectoryList();
+        updateChatRoomFriendButton();
+      });
+
       db.ref(`${ROOT_NODE}/users`).on('value', (snap) => {
         allUsersMap = snap.val() || {};
         const friendCount = Object.keys(allUsersMap).filter(p => p !== currentUser.phone).length;
@@ -1219,6 +1239,71 @@
       renderCallHistory();
       run24HourCleanup();
       setInterval(run24HourCleanup, 60000);
+    }
+
+    // ==================== PERMANENT ADD / REMOVE FRIEND ====================
+    async function addPermanentFriend(peerPhone, peerObj = null) {
+      if (!currentUser || !peerPhone || peerPhone === currentUser.phone) return;
+      const source = peerObj || allUsersMap[peerPhone] || { phone: peerPhone, name: peerPhone };
+      const record = {
+        phone: source.phone,
+        name: source.name || peerPhone,
+        avatar: source.avatar || '',
+        bio: source.bio || '',
+        addedAt: Date.now()
+      };
+      savedFriendsMap[peerPhone] = record;
+      try {
+        localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
+      } catch (e) {}
+      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${peerPhone}`).set(record);
+      renderChatList();
+      renderDirectoryList();
+      updateChatRoomFriendButton();
+      showToast(`${record.name} added to permanent friends!`, 'success');
+    }
+
+    async function removePermanentFriend(peerPhone) {
+      if (!currentUser || !peerPhone) return;
+      const name = savedFriendsMap[peerPhone]?.name || allUsersMap[peerPhone]?.name || peerPhone;
+      delete savedFriendsMap[peerPhone];
+      try {
+        localStorage.setItem(`kalah_saved_friends_${currentUser.phone}`, JSON.stringify(savedFriendsMap));
+      } catch (e) {}
+      await db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}/${peerPhone}`).remove();
+      renderChatList();
+      renderDirectoryList();
+      updateChatRoomFriendButton();
+      showToast(`${name} removed from friends`, 'info');
+    }
+
+    function updateChatRoomFriendButton() {
+      const actionBox = document.getElementById('room-action-buttons');
+      if (!actionBox) return;
+      let btn = document.getElementById('room-add-friend-btn');
+      if (!activeChatPeer || activeChatPeer === 'KALAH_AI' || activeChatPeer.isGroup) {
+        if (btn) btn.classList.add('hidden');
+        return;
+      }
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.id = 'room-add-friend-btn';
+        btn.className = 'px-2.5 py-1.5 rounded-full text-[11px] font-bold transition border flex items-center gap-1';
+        actionBox.prepend(btn);
+      }
+      btn.classList.remove('hidden');
+      const isSaved = Boolean(savedFriendsMap[activeChatPeer.phone]);
+      if (isSaved) {
+        btn.className = 'px-2.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold transition';
+        btn.textContent = 'Saved ✓';
+        btn.title = 'Tap to remove from permanent friends';
+        btn.onclick = () => removePermanentFriend(activeChatPeer.phone);
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-full bg-kalah-blue hover:bg-kalah-blueBright border border-blue-400/30 text-white text-[11px] font-bold transition';
+        btn.textContent = '+ Friend';
+        btn.title = 'Save friend permanently';
+        btn.onclick = () => addPermanentFriend(activeChatPeer.phone, activeChatPeer);
+      }
     }
 
     function saveProfileChanges() {
@@ -1385,6 +1470,7 @@
     function openGroupChat(group) {
       clearReplyTarget();
       activeChatPeer = { ...group, isGroup: true };
+      updateChatRoomFriendButton();
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
       applySavedWallpaper();
@@ -1454,7 +1540,11 @@
     const monitoredChatIds = new Set();
 
     function setupChatPreviewsListeners() {
-      Object.keys(allUsersMap).forEach(peerPhone => {
+      const combinedPhones = new Set([
+        ...Object.keys(allUsersMap),
+        ...Object.keys(savedFriendsMap)
+      ]);
+      combinedPhones.forEach(peerPhone => {
         if (peerPhone === currentUser.phone) return;
         const chatId = getChatId(currentUser.phone, peerPhone);
         if (monitoredChatIds.has(chatId)) return;
@@ -1481,7 +1571,7 @@
                 const isViewingPeer = activeChatPeer && activeChatPeer !== 'KALAH_AI' && !activeChatPeer.isGroup && activeChatPeer.phone === peerPhone;
                 if (!isViewingPeer && msg.timestamp > appBootTime - 3000 && !notifiedMsgIds.has(msgId)) {
                   notifiedMsgIds.add(msgId);
-                  const peerObj = allUsersMap[peerPhone] || { phone: peerPhone, name: peerPhone };
+                  const peerObj = allUsersMap[peerPhone] || savedFriendsMap[peerPhone] || { phone: peerPhone, name: peerPhone };
                   const bodyText = msg.deleted ? 'This message was deleted' : getPreviewLabel(msg);
                   triggerNotifyAlert(peerObj.name, bodyText, 'message', () => openFriendChat(peerObj));
                 }
@@ -1581,7 +1671,20 @@
           unread: groupUnreadCounts[g.id] || 0
         }));
 
-      let peers = Object.values(allUsersMap).filter(u => u.phone !== currentUser.phone);
+      // Merge live users and permanently saved friends so saved friends never disappear
+      const mergedPeersMap = {};
+      Object.values(savedFriendsMap).forEach(sf => {
+        if (sf && sf.phone && sf.phone !== currentUser.phone) {
+          mergedPeersMap[sf.phone] = { ...sf };
+        }
+      });
+      Object.values(allUsersMap).forEach(u => {
+        if (u && u.phone && u.phone !== currentUser.phone) {
+          mergedPeersMap[u.phone] = { ...(mergedPeersMap[u.phone] || {}), ...u };
+        }
+      });
+
+      let peers = Object.values(mergedPeersMap);
       if (query) {
         peers = peers.filter(u =>
           (u.name || '').toLowerCase().includes(query) ||
@@ -1592,8 +1695,9 @@
       const peerItems = peers.map(u => ({
         type: 'peer',
         data: u,
-        ts: lastMessagesMap[u.phone]?.timestamp || 0,
-        unread: unreadCounts[u.phone] || 0
+        ts: lastMessagesMap[u.phone]?.timestamp || savedFriendsMap[u.phone]?.addedAt || 0,
+        unread: unreadCounts[u.phone] || 0,
+        isSavedFriend: Boolean(savedFriendsMap[u.phone])
       }));
 
       let combined = [];
@@ -1604,8 +1708,9 @@
       } else if (currentChatFilter === 'friends') {
         combined = peerItems;
       } else {
-        const activePeers = peerItems.filter(p => lastMessagesMap[p.data.phone]);
-        combined = [...myGroups, ...(activePeers.length > 0 ? activePeers : peerItems)];
+        // Show all groups + all saved friends + anyone with recent messages
+        const persistentOrActivePeers = peerItems.filter(p => p.isSavedFriend || lastMessagesMap[p.data.phone]);
+        combined = [...myGroups, ...(persistentOrActivePeers.length > 0 ? persistentOrActivePeers : peerItems)];
       }
 
       combined.sort((a, b) => b.ts - a.ts);
@@ -1617,7 +1722,7 @@
               <i data-lucide="users" class="w-6 h-6"></i>
             </div>
             <p class="text-sm font-semibold text-white">No chats here yet</p>
-            <p class="text-xs text-kalah-muted">Create a group or tap the blue button to start chatting.</p>
+            <p class="text-xs text-kalah-muted">Tap the blue button below to find & add friends permanently.</p>
           </div>
         `;
         lucide.createIcons();
@@ -1674,12 +1779,18 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between">
-                <h3 class="font-bold text-[15px] text-white truncate">${escapeHtml(peer.name)}</h3>
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <h3 class="font-bold text-[15px] text-white truncate">${escapeHtml(peer.name)}</h3>
+                  ${item.isSavedFriend ? '<span class="px-1.5 py-0.2 text-[9px] font-bold bg-emerald-500/15 text-emerald-300 rounded border border-emerald-500/30 shrink-0">Friend</span>' : ''}
+                </div>
                 <span class="text-[11px] ${item.unread > 0 ? 'text-blue-400 font-bold' : 'text-kalah-muted'}">${lastMsg ? formatShortTime(lastMsg.timestamp) : ''}</span>
               </div>
               <div class="flex items-center justify-between mt-0.5 gap-2">
                 <p class="text-xs text-kalah-muted truncate">${escapeHtml(previewText)}</p>
-                ${item.unread > 0 ? `<span class="px-2 py-0.5 text-[10px] font-bold bg-kalah-blueBright text-white rounded-full shrink-0">${item.unread}</span>` : ''}
+                <div class="flex items-center gap-1.5 shrink-0">
+                  ${item.unread > 0 ? `<span class="px-2 py-0.5 text-[10px] font-bold bg-kalah-blueBright text-white rounded-full">${item.unread}</span>` : ''}
+                  ${item.isSavedFriend ? `<button onclick="event.stopPropagation(); removePermanentFriend('${peer.phone}')" title="Remove Friend" class="p-1.5 rounded-lg hover:bg-red-500/20 text-kalah-muted hover:text-red-400 transition"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>` : ''}
+                </div>
               </div>
             </div>
           `;
@@ -1704,9 +1815,16 @@
       const query = (document.getElementById('directory-search-input').value || '').toLowerCase().trim();
       container.innerHTML = '';
 
-      const peers = Object.values(allUsersMap).filter(u =>
-        u.phone !== currentUser.phone &&
-        ((u.name || '').toLowerCase().includes(query) || (u.phone || '').includes(query))
+      const mergedMap = {};
+      Object.values(savedFriendsMap).forEach(sf => {
+        if (sf && sf.phone && sf.phone !== currentUser.phone) mergedMap[sf.phone] = { ...sf };
+      });
+      Object.values(allUsersMap).forEach(u => {
+        if (u && u.phone && u.phone !== currentUser.phone) mergedMap[u.phone] = { ...(mergedMap[u.phone] || {}), ...u };
+      });
+
+      const peers = Object.values(mergedMap).filter(u =>
+        (u.name || '').toLowerCase().includes(query) || (u.phone || '').includes(query)
       );
 
       if (peers.length === 0) {
@@ -1715,8 +1833,9 @@
       }
 
       peers.forEach(peer => {
+        const isSaved = Boolean(savedFriendsMap[peer.phone]);
         const item = document.createElement('div');
-        item.className = 'p-3 rounded-2xl bg-kalah-card/70 hover:bg-kalah-card border border-kalah-border/50 flex items-center justify-between gap-3 cursor-pointer transition';
+        item.className = 'p-3 rounded-2xl bg-kalah-card/70 hover:bg-kalah-card border border-kalah-border/50 flex items-center justify-between gap-2 cursor-pointer transition';
         item.onclick = () => {
           closeFriendsModal();
           openFriendChat(peer);
@@ -1729,7 +1848,13 @@
               <p class="text-xs text-blue-400 font-medium">${peer.phone}</p>
             </div>
           </div>
-          <span class="px-3 py-1.5 rounded-xl bg-kalah-blue text-xs font-semibold text-white shrink-0">Chat</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${isSaved
+              ? `<button onclick="event.stopPropagation(); removePermanentFriend('${peer.phone}')" class="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">Saved ✓</button>`
+              : `<button onclick="event.stopPropagation(); addPermanentFriend('${peer.phone}')" class="px-2.5 py-1.5 rounded-xl bg-kalah-surface border border-kalah-border hover:border-blue-400 text-blue-300 text-xs font-semibold">+ Add Friend</button>`
+            }
+            <span class="px-3 py-1.5 rounded-xl bg-kalah-blue text-xs font-semibold text-white">Chat</span>
+          </div>
         `;
         container.appendChild(item);
       });
@@ -1738,6 +1863,7 @@
     function openFriendChat(peer) {
       clearReplyTarget();
       activeChatPeer = peer;
+      updateChatRoomFriendButton();
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
       applySavedWallpaper();
@@ -1811,6 +1937,7 @@
       }
       clearReplyTarget();
       activeChatPeer = null;
+      updateChatRoomFriendButton();
       document.getElementById('chat-room').classList.add('hidden');
     }
 
@@ -1940,7 +2067,11 @@
 
     function appendMessageBubble(msgId, msg, isMine, showSenderLabel = false) {
       const container = document.getElementById('messages-container');
+      const existingNode = document.getElementById(`msg-node-${msgId}`);
+      if (existingNode) existingNode.remove();
+
       const wrapper = document.createElement('div');
+      wrapper.id = `msg-node-${msgId}`;
       wrapper.className = `flex flex-col ${isMine ? 'items-end' : 'items-start'}`;
 
       const bubbleClass = isMine
@@ -2043,7 +2174,20 @@
       const text = input.value.trim();
       if (!text || !activeChatPeer) return;
 
+      const now = Date.now();
+      const targetKey = activeChatPeer === 'KALAH_AI'
+        ? 'AI'
+        : (activeChatPeer.isGroup ? activeChatPeer.id : activeChatPeer.phone);
+      const fingerprint = `${targetKey}::${text}`;
+
+      // Block duplicate double-fire within 1.5 seconds
+      if (fingerprint === lastSentFingerprint && (now - lastSentTimestamp) < 1500) {
+        return;
+      }
+
       isSendingText = true;
+      lastSentFingerprint = fingerprint;
+      lastSentTimestamp = now;
       input.value = '';
       toggleMicSendBtn();
       playSendSound();
@@ -2056,7 +2200,7 @@
 
         const targetRef = getTargetMessagesRef();
         if (!targetRef) return;
-        const now = Date.now();
+        const msgId = `m_${now}_${Math.random().toString(36).slice(2, 7)}`;
         const payload = {
           sender: currentUser.phone,
           type: 'text',
@@ -2071,9 +2215,11 @@
           };
         }
         clearReplyTarget();
-        await targetRef.push(payload);
+        await targetRef.child(msgId).set(payload);
       } finally {
-        isSendingText = false;
+        setTimeout(() => {
+          isSendingText = false;
+        }, 250);
       }
     }
 
@@ -2833,13 +2979,26 @@
       });
     }
 
-    function getActiveGeminiKey() {
-      return remoteGeminiKey || localStorage.getItem('kalah_local_gemini_key')?.trim() || '';
+    async function ensureGeminiKeyLoaded() {
+      if (remoteGeminiKey && remoteGeminiKey.length > 10) return remoteGeminiKey;
+      const localKey = localStorage.getItem('kalah_local_gemini_key')?.trim();
+      if (localKey && localKey.length > 10) return localKey;
+
+      try {
+        const snap = await db.ref(`${ROOT_NODE}/config/gemini_key`).once('value');
+        const val = snap.val();
+        if (val && typeof val === 'string' && val.trim().length > 10) {
+          remoteGeminiKey = val.trim();
+          return remoteGeminiKey;
+        }
+      } catch (e) {}
+      return '';
     }
 
     function openAIChat() {
       clearReplyTarget();
       activeChatPeer = 'KALAH_AI';
+      updateChatRoomFriendButton();
       const room = document.getElementById('chat-room');
       room.classList.remove('hidden');
       applySavedWallpaper();
@@ -2939,9 +3098,9 @@
       aiChatHistory.push({ role: 'user', text: userText, timestamp: now });
       renderAIMessages();
 
-      const apiKey = getActiveGeminiKey();
+      const apiKey = await ensureGeminiKeyLoaded();
       if (!apiKey) {
-        const helpMsg = "⚠️ Gemini API Key එක Firebase RTDB (`kalah_messenger_v2/config/gemini_key`) හරහා load වෙලා නෑ.";
+        const helpMsg = "⚠️ Gemini API Key එක Firebase RTDB (`kalah_messenger_v2/config/gemini_key`) හරහා load වෙලා නෑ. Firebase RTDB Rules expire වී ඇත්දැයි පරීක්ෂා කරන්න.";
         aiChatHistory.push({ role: 'model', text: helpMsg, timestamp: Date.now() });
         document.getElementById('ai-last-preview').textContent = helpMsg;
         renderAIMessages();
@@ -2958,7 +3117,7 @@
 
       try {
         const contents = aiChatHistory
-          .filter(m => m && typeof m.text === 'string' && !m.text.startsWith('❌ AI Error:'))
+          .filter(m => m && typeof m.text === 'string' && !m.text.startsWith('❌ AI Error:') && !m.text.startsWith('⚠️'))
           .slice(-10)
           .map(m => ({
             role: m.role === 'user' ? 'user' : 'model',
