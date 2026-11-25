@@ -3,36 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#070d19" />
   <title>Kalah Chat</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-
   <script>
     tailwind.config = {
       darkMode: 'class',
       theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', 'Noto Sans Sinhala', 'sans-serif'],
-          },
           colors: {
             kalah: {
-              bg: '#050a14',
-              surface: '#0b1526',
-              card: '#11223d',
-              hover: '#162b4d',
+              bg: '#070d19',
+              surface: '#0d182e',
+              card: '#132240',
+              hover: '#1b3059',
+              border: '#1e355e',
               blue: '#1d6ef2',
-              blueBright: '#2b7fff',
-              sent: '#16499c',
-              received: '#101e36',
-              muted: '#8fa3bf',
-              border: '#192d4d'
+              blueBright: '#3b82f6',
+              sent: '#175cd3',
+              received: '#12203b',
+              text: '#f1f5f9',
+              muted: '#8da2c0'
             }
           }
         }
@@ -40,23 +32,20 @@
     };
   </script>
 
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
   <style>
     * {
       -webkit-tap-highlight-color: transparent;
-      box-sizing: border-box;
     }
-
-    html, body {
-      height: 100dvh;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-      background-color: #050a14;
-      color: #ffffff;
-      overflow: hidden;
-      font-family: 'Inter', 'Noto Sans Sinhala', sans-serif;
+    body {
+      background-color: #070d19;
+      color: #f1f5f9;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overscroll-behavior-y: none;
     }
-
     ::-webkit-scrollbar {
       width: 4px;
       height: 4px;
@@ -65,641 +54,650 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #192d4d;
+      background: #1e355e;
       border-radius: 9999px;
     }
-
     .chat-wallpaper {
-      background-color: #060d1a;
+      background-color: #070d19;
       background-size: cover;
       background-position: center;
-      background-image: url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23102445' stroke-width='1.5'%3E%3Cpath d='M20 20 L35 10 L50 20 L50 38 L35 48 L20 38 Z'/%3E%3Ccircle cx='90' cy='30' r='12'/%3E%3Cpath d='M84 30 L96 30 M90 24 L90 36'/%3E%3Crect x='18' y='75' width='24' height='18' rx='5'/%3E%3Cpath d='M24 93 L20 100 L30 93'/%3E%3Cpath d='M75 80 Q90 65 105 80 T105 95'/%3E%3Ccircle cx='60' cy='60' r='3' fill='%23102445'/%3E%3Cpath d='M10 55 L16 61 M16 55 L10 61'/%3E%3C/g%3E%3C/svg%3E");
-      background-repeat: repeat;
+      background-image:
+        radial-gradient(circle at 20% 20%, rgba(29, 110, 242, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 80% 75%, rgba(59, 130, 246, 0.06) 0%, transparent 45%),
+        radial-gradient(#1e355e 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 24px 24px;
     }
-
-    @keyframes pulseRing {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      70% { transform: scale(1.35); opacity: 0; }
-      100% { transform: scale(1.35); opacity: 0; }
-    }
-    .animate-pulse-ring {
-      animation: pulseRing 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
-    }
-
     .bubble-sent {
-      border-radius: 18px 18px 4px 18px;
+      border-bottom-right-radius: 6px;
     }
     .bubble-received {
-      border-radius: 18px 18px 18px 4px;
+      border-bottom-left-radius: 6px;
     }
-
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.75; }
+      70% { transform: scale(1.25); opacity: 0; }
+      100% { transform: scale(1.25); opacity: 0; }
     }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
+    .pulse-ring {
+      animation: pulseRing 1.8s infinite;
     }
   </style>
 </head>
-<body class="bg-kalah-bg text-white select-none">
+<body class="bg-kalah-bg text-kalah-text min-h-screen flex justify-center selection:bg-kalah-blue selection:text-white">
 
-  <!-- ==================== GLOBAL TOAST & IN-APP NOTIFICATION BANNER ==================== -->
-  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[120] flex flex-col items-center gap-2 pointer-events-none w-[92%] max-w-sm"></div>
-
-  <div id="inapp-notify-banner" onclick="handleNotifyBannerClick()" class="fixed top-3 left-1/2 -translate-x-1/2 z-[110] w-[92%] max-w-md bg-kalah-surface/95 backdrop-blur-md border border-kalah-blueBright/60 rounded-2xl p-3 shadow-2xl flex items-center gap-3 cursor-pointer hidden transition">
-    <div class="w-10 h-10 rounded-full bg-kalah-blue/25 border border-blue-400/40 flex items-center justify-center shrink-0">
-      <i id="notify-banner-icon" data-lucide="bell-ring" class="w-5 h-5 text-blue-400"></i>
-    </div>
-    <div class="flex-1 min-w-0">
-      <p id="notify-banner-title" class="text-xs font-extrabold text-white truncate">Sender Name</p>
-      <p id="notify-banner-body" class="text-[11px] text-kalah-muted truncate">Message content</p>
-    </div>
-    <button onclick="event.stopPropagation(); hideNotifyBanner();" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted">
-      <i data-lucide="x" class="w-4 h-4"></i>
-    </button>
-  </div>
-
-  <!-- ==================== 0. PRIVATE LOCK SCREEN (NO HINT SHOWN) ==================== -->
-  <div id="gate-lock-screen" class="fixed inset-0 z-[90] bg-kalah-bg flex flex-col justify-between p-6 overflow-y-auto">
-    <div class="max-w-md w-full mx-auto my-auto space-y-6">
-      <div class="text-center space-y-2">
-        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-kalah-blueBright to-blue-950 flex items-center justify-center shadow-lg shadow-blue-600/30 border border-blue-400/30">
-          <i data-lucide="lock" class="w-10 h-10 text-blue-300"></i>
-        </div>
+  <!-- PRIVATE LOCK SCREEN -->
+  <div id="gate-lock-screen" class="fixed inset-0 z-[90] bg-kalah-bg flex flex-col items-center justify-center p-6">
+    <div class="w-full max-w-sm bg-kalah-surface border border-kalah-border rounded-3xl p-6 shadow-2xl space-y-5 text-center">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-kalah-blueBright to-blue-900 flex items-center justify-center shadow-lg shadow-blue-900/50">
+        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+      </div>
+      <div class="space-y-1">
         <h1 class="text-xl font-extrabold tracking-tight text-white">Kalah Chat</h1>
+        <p class="text-xs text-kalah-muted">Enter access code to continue</p>
       </div>
-
-      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-6 shadow-2xl space-y-4">
-        <div class="space-y-1.5">
-          <label class="text-[11px] font-semibold text-kalah-muted uppercase tracking-wider">Lock Code</label>
-          <input id="gate-lock-input" type="password" inputmode="decimal" onkeydown="if(event.key==='Enter') submitGateLock()" placeholder="•••••" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl px-4 py-3.5 text-center text-lg font-extrabold tracking-widest text-white placeholder-kalah-muted/50 outline-none" />
-        </div>
-        <button onclick="submitGateLock()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition">
-          Unlock
-        </button>
-      </div>
+      <input
+        id="gate-lock-input"
+        type="password"
+        placeholder="Access code..."
+        onkeydown="if(event.key==='Enter') submitGateLock()"
+        class="w-full px-4 py-3 rounded-2xl bg-kalah-card border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white text-center tracking-widest"
+      />
+      <button
+        onclick="submitGateLock()"
+        class="w-full py-3 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright active:scale-[0.99] font-bold text-sm text-white shadow-lg shadow-blue-600/30 transition"
+      >
+        Unlock
+      </button>
     </div>
-    <p class="text-center text-[11px] text-kalah-muted/50">Kalah Private Node</p>
   </div>
 
-  <!-- ==================== 1. AUTH / PROFILE SETUP SCREEN ==================== -->
-  <div id="auth-screen" class="fixed inset-0 z-50 bg-kalah-bg flex flex-col justify-between p-6 overflow-y-auto hidden">
-    <div class="max-w-md w-full mx-auto my-auto space-y-6">
-      <div class="text-center space-y-2">
-        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-kalah-blueBright to-blue-900 flex items-center justify-center shadow-lg shadow-blue-600/30 border border-blue-400/30">
-          <i data-lucide="message-circle-code" class="w-10 h-10 text-white"></i>
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 w-[92%] max-w-md pointer-events-none"></div>
+
+  <!-- IN-APP NOTIFICATION BANNER -->
+  <div
+    id="inapp-notify-banner"
+    onclick="handleNotifyBannerClick()"
+    class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-[95] w-[92%] max-w-md bg-kalah-surface/95 backdrop-blur-md border border-blue-500/40 rounded-2xl p-3.5 shadow-2xl cursor-pointer transition"
+  >
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-full bg-kalah-blue/25 border border-blue-400/30 flex items-center justify-center text-blue-300 shrink-0">
+          <i id="notify-banner-icon" data-lucide="bell-ring" class="w-4 h-4"></i>
         </div>
-        <h1 class="text-3xl font-extrabold tracking-tight text-white">Kalah Chat</h1>
-        <p class="text-sm text-kalah-muted">Private Dark-Blue Messenger • 24h Auto-Vanish</p>
+        <div class="min-w-0">
+          <p id="notify-banner-title" class="text-xs font-extrabold text-white truncate">Notification</p>
+          <p id="notify-banner-body" class="text-[11px] text-blue-200 truncate">New activity</p>
+        </div>
+      </div>
+      <button onclick="event.stopPropagation(); hideNotifyBanner()" class="p-1.5 rounded-lg hover:bg-kalah-card text-kalah-muted hover:text-white shrink-0">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- MOBILE APP SHELL -->
+  <div id="app-shell" class="w-full max-w-md min-h-screen bg-kalah-bg relative flex flex-col shadow-2xl border-x border-kalah-border/40 overflow-hidden">
+
+    <!-- ==================== AUTH / PROFILE SETUP SCREEN ==================== -->
+    <div id="auth-screen" class="hidden flex-1 flex flex-col justify-between p-6 bg-gradient-to-b from-kalah-surface via-kalah-bg to-kalah-bg">
+      <div class="pt-6 text-center space-y-3">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-kalah-blueBright via-kalah-blue to-blue-950 p-0.5 shadow-xl shadow-blue-900/40">
+          <div class="w-full h-full bg-kalah-surface rounded-[22px] flex items-center justify-center">
+            <svg viewBox="0 0 64 64" class="w-11 h-11" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 16C12 12.6863 14.6863 10 18 10H46C49.3137 10 52 12.6863 52 16V36C52 39.3137 49.3137 42 46 42H26L15 52V42H18C14.6863 42 12 39.3137 12 36V16Z" fill="#1d6ef2" fill-opacity="0.22" stroke="#3b82f6" stroke-width="2.5"/>
+              <path d="M24 18V34M36 18L26.5 26L36 34" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h1 class="text-2xl font-extrabold tracking-tight text-white">Kalah Chat</h1>
+          <p class="text-xs text-kalah-muted mt-1">Private real-time messaging • 24h auto-vanish</p>
+        </div>
       </div>
 
-      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-6 shadow-2xl space-y-5">
-        <div class="flex bg-kalah-bg p-1 rounded-2xl border border-kalah-border">
-          <button id="tab-login-mode" onclick="setAuthMode('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition">Login</button>
-          <button id="tab-register-mode" onclick="setAuthMode('register')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition">Create Profile</button>
+      <div class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-5 shadow-xl space-y-4 my-auto">
+        <div class="flex bg-kalah-bg p-1 rounded-2xl border border-kalah-border/70">
+          <button id="tab-login-mode" onclick="setAuthMode('login')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl bg-kalah-blue text-white transition">
+            Sign In
+          </button>
+          <button id="tab-register-mode" onclick="setAuthMode('register')" class="flex-1 py-2.5 text-sm font-semibold rounded-xl text-kalah-muted hover:text-white transition">
+            Create Profile
+          </button>
         </div>
 
-        <div id="register-avatar-box" class="hidden flex flex-col items-center gap-2">
+        <div id="register-avatar-box" class="hidden flex flex-col items-center gap-2 pt-1">
           <label for="reg-avatar-input" class="relative cursor-pointer group">
-            <img id="reg-avatar-preview" src="" alt="Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
-            <div class="absolute bottom-0 right-0 bg-kalah-blue p-2 rounded-full border-2 border-kalah-surface shadow-md group-hover:scale-105 transition">
-              <i data-lucide="camera" class="w-4 h-4 text-white"></i>
-            </div>
+            <img id="reg-avatar-preview" src="" alt="Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
+            <span class="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-kalah-blue flex items-center justify-center border-2 border-kalah-surface">
+              <i data-lucide="camera" class="w-3.5 h-3.5 text-white"></i>
+            </span>
           </label>
-          <input type="file" id="reg-avatar-input" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'reg-avatar-preview', 'reg')" />
-          <span class="text-xs text-kalah-muted">Tap to add Profile Photo</span>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Phone Number</label>
-          <div class="relative">
-            <i data-lucide="phone" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
-            <input id="auth-phone" type="tel" placeholder="0771234567" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
-          </div>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">4-Digit Secret PIN</label>
-          <div class="relative">
-            <i data-lucide="lock" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
-            <input id="auth-pin" type="password" maxlength="6" inputmode="numeric" placeholder="••••" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium tracking-widest" />
-          </div>
+          <input id="reg-avatar-input" type="file" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'reg-avatar-preview', 'reg')" />
+          <span class="text-[11px] text-kalah-muted">Tap to set profile photo</span>
         </div>
 
         <div id="register-name-box" class="hidden space-y-1.5">
-          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Your Display Name</label>
-          <div class="relative">
-            <i data-lucide="user" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
-            <input id="auth-name" type="text" placeholder="e.g. Kalah" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
-          </div>
+          <label class="text-xs font-medium text-kalah-muted ml-1">Display Name</label>
+          <input id="auth-name" type="text" placeholder="e.g. Kalah" class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-kalah-muted ml-1">Phone Number</label>
+          <input id="auth-phone" type="tel" placeholder="e.g. 0771234567" class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-medium text-kalah-muted ml-1">4+ Digit PIN</label>
+          <input id="auth-pin" type="password" inputmode="numeric" placeholder="••••" class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
         </div>
 
         <div id="register-bio-box" class="hidden space-y-1.5">
-          <label class="text-xs font-semibold text-kalah-muted uppercase tracking-wider">Bio / Status</label>
-          <div class="relative">
-            <i data-lucide="sparkles" class="w-4 h-4 text-kalah-muted absolute left-4 top-1/2 -translate-y-1/2"></i>
-            <input id="auth-bio" type="text" placeholder="Hey there! I am using Kalah Chat." value="Available on Kalah Chat ⚡" class="w-full bg-kalah-card border border-kalah-border focus:border-kalah-blueBright rounded-2xl pl-11 pr-4 py-3.5 text-white placeholder-kalah-muted/60 outline-none text-sm font-medium" />
-          </div>
+          <label class="text-xs font-medium text-kalah-muted ml-1">Short Bio (Optional)</label>
+          <input id="auth-bio" type="text" placeholder="Building cool things..." class="w-full px-4 py-3 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-slate-500" />
         </div>
 
-        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright hover:opacity-95 active:scale-[0.99] text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
+        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright active:scale-[0.99] font-bold text-sm text-white shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2">
           <span>Continue to Kalah Chat</span>
-          <i data-lucide="arrow-right" class="w-4 h-4"></i>
         </button>
       </div>
 
-      <p class="text-center text-xs text-kalah-muted/70">
-        Connected to <span class="text-blue-400 font-semibold">kalah-private-node</span> • End-to-End 24h Auto-Delete
+      <p class="text-center text-[11px] text-kalah-muted pb-2">
+        Kalah Chat • Messages automatically disappear after 24 hours
       </p>
     </div>
-  </div>
-    <!-- ==================== 3B. CUTE EMOJI PICKER & DELETE POPOVER ==================== -->
-    <div id="msg-action-modal" onclick="closeMsgActionModal()" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end justify-center hidden">
-      <div onclick="event.stopPropagation()" class="bg-kalah-surface border-t border-kalah-border w-full max-w-lg rounded-t-3xl p-5 space-y-4 shadow-2xl">
-        <p class="text-xs font-bold text-kalah-muted uppercase tracking-wider text-center">Pick a Cute Emoji</p>
-        <div id="cute-emoji-grid" class="grid grid-cols-6 gap-2 bg-kalah-card rounded-2xl p-3 border border-kalah-border/70"></div>
 
-        <div class="space-y-2">
-          <button id="btn-delete-everyone" onclick="deleteSelectedMessageForEveryone()" class="w-full py-3 px-4 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-sm font-bold flex items-center justify-center gap-2 transition hidden">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-            <span>Delete for Everyone</span>
+    <!-- ==================== MAIN AUTHENTICATED APP ==================== -->
+    <div id="main-app" class="hidden flex-1 flex flex-col h-screen max-h-screen overflow-hidden">
+
+      <!-- TOP HEADER -->
+      <header class="bg-kalah-surface/95 backdrop-blur-md border-b border-kalah-border/60 px-4 pt-3.5 pb-3 shrink-0 z-20">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-extrabold tracking-tight text-white">Kalah Chat</h1>
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-kalah-blue/20 text-blue-400 border border-blue-500/30">
+              24H
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="shareAppLink()" title="Share Kalah Chat" class="p-2 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white transition">
+              <i data-lucide="share-2" class="w-5 h-5"></i>
+            </button>
+            <button onclick="openCreateGroupModal()" title="Create Group" class="px-2.5 py-1.5 rounded-full bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-blue-300 text-xs font-bold flex items-center gap-1 transition">
+              <i data-lucide="users-plus" class="w-3.5 h-3.5"></i>
+              <span>+ Group</span>
+            </button>
+            <button onclick="switchMainTab('profile')" title="Profile & Settings" class="p-2 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white transition">
+              <i data-lucide="more-vertical" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="header-search-wrap" class="mt-3 relative">
+          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+          <input
+            id="chat-search-input"
+            type="text"
+            oninput="renderChatList()"
+            placeholder="Search chats, groups or phone..."
+            class="w-full pl-10 pr-4 py-2 rounded-2xl bg-kalah-card/90 border border-kalah-border/70 focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-kalah-muted"
+          />
+        </div>
+      </header>
+
+      <!-- SCROLLABLE BODY -->
+      <main id="main-scroll-area" class="flex-1 overflow-y-auto pb-24">
+
+        <!-- TAB 1: CHATS -->
+        <section id="view-chats" class="divide-y divide-kalah-border/30">
+          <div class="px-4 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar bg-kalah-bg/60">
+            <button id="chip-all" onclick="setChatFilter('all')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-blue text-white transition shrink-0">
+              All
+            </button>
+            <button id="chip-groups" onclick="setChatFilter('groups')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">
+              Groups (<span id="groups-count-badge">0</span>)
+            </button>
+            <button id="chip-unread" onclick="setChatFilter('unread')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">
+              Unread
+            </button>
+            <button id="chip-friends" onclick="setChatFilter('friends')" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">
+              Friends (<span id="friends-count-badge">0</span>)
+            </button>
+          </div>
+
+          <div class="px-4 py-2 flex items-center justify-between text-[11px] text-kalah-muted bg-kalah-surface/40">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i>
+              Chats & groups auto-delete after 24h
+            </span>
+            <button onclick="enableBrowserNotifications()" class="text-blue-400 hover:underline font-medium flex items-center gap-1">
+              <i data-lucide="bell" class="w-3 h-3"></i> Alerts On
+            </button>
+          </div>
+
+          <!-- PINNED KALAH AI ASSISTANT -->
+          <div onclick="openAIChat()" class="px-4 py-3.5 flex items-center gap-3.5 hover:bg-kalah-surface/80 active:bg-kalah-card cursor-pointer transition bg-gradient-to-r from-blue-950/35 via-transparent to-transparent">
+            <div class="relative shrink-0">
+              <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-tr from-kalah-blue via-blue-500 to-cyan-400 p-[2px] shadow-md shadow-blue-900/40">
+                <div class="w-full h-full rounded-full bg-kalah-surface flex items-center justify-center">
+                  <i data-lucide="sparkles" class="w-6 h-6 text-blue-400"></i>
+                </div>
+              </div>
+              <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-kalah-blue border-2 border-kalah-bg flex items-center justify-center">
+                <i data-lucide="bot" class="w-2.5 h-2.5 text-white"></i>
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-bold text-[15px] text-white truncate">Kalah AI</h3>
+                  <span class="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">AI</span>
+                </div>
+                <span class="text-[11px] text-blue-400 font-medium">Pinned</span>
+              </div>
+              <p id="ai-last-preview" class="text-xs text-kalah-muted truncate mt-0.5">
+                Ask Kalah AI anything • Instant smart assistant
+              </p>
+            </div>
+          </div>
+
+          <div id="chat-list-container" class="divide-y divide-kalah-border/25">
+            <div class="p-8 text-center text-kalah-muted text-sm">Loading chats...</div>
+          </div>
+        </section>
+
+        <!-- TAB 2: CALLS -->
+        <section id="view-calls" class="hidden p-4 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-white">Recent Voice Calls</h2>
+            <button onclick="openFriendsModal()" class="text-xs font-semibold text-blue-400 hover:underline">+ New Call</button>
+          </div>
+          <div id="calls-list-container" class="space-y-2.5">
+            <div class="text-center py-10 text-xs text-kalah-muted">No recent calls yet. Tap a friend to start a voice call!</div>
+          </div>
+        </section>
+
+        <!-- TAB 3: PROFILE & SETTINGS -->
+        <section id="view-profile" class="hidden p-4 space-y-5">
+          <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-5 flex flex-col items-center text-center space-y-3">
+            <label for="edit-avatar-input" class="relative cursor-pointer">
+              <img id="profile-avatar-img" src="" alt="My Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
+              <span class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-kalah-blue flex items-center justify-center border-2 border-kalah-surface">
+                <i data-lucide="camera" class="w-4 h-4 text-white"></i>
+              </span>
+            </label>
+            <input id="edit-avatar-input" type="file" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'profile-avatar-img', 'edit')" />
+            <div>
+              <h2 id="profile-display-name" class="text-lg font-extrabold text-white">User</h2>
+              <p id="profile-display-phone" class="text-xs text-blue-400 font-medium"></p>
+            </div>
+          </div>
+
+          <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-kalah-muted">Edit Profile</h3>
+            <div class="space-y-1">
+              <label class="text-xs text-kalah-muted">Display Name</label>
+              <input id="edit-name-input" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-kalah-bg border border-kalah-border text-sm text-white focus:border-kalah-blueBright focus:outline-none" />
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs text-kalah-muted">Bio</label>
+              <input id="edit-bio-input" type="text" class="w-full px-3.5 py-2.5 rounded-xl bg-kalah-bg border border-kalah-border text-sm text-white focus:border-kalah-blueBright focus:outline-none" />
+            </div>
+            <button onclick="saveProfileChanges()" class="w-full py-2.5 rounded-xl bg-kalah-blue hover:bg-kalah-blueBright text-sm font-bold text-white transition">
+              Save Changes
+            </button>
+          </div>
+
+          <!-- CUSTOM CHAT WALLPAPER (<1MB) -->
+          <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-kalah-muted">Chat Wallpaper</h3>
+              <span class="text-[10px] text-blue-400 font-semibold">Max 1MB</span>
+            </div>
+            <div id="wallpaper-preview-box" class="h-24 rounded-2xl border border-kalah-border chat-wallpaper flex items-center justify-center px-3 text-center">
+              <span id="wallpaper-status-text" class="text-xs text-kalah-muted bg-kalah-bg/80 px-3 py-1 rounded-full">Default Kalah dark pattern</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <label for="wallpaper-file-input" class="flex-1 py-2.5 px-3 rounded-xl bg-kalah-blue hover:bg-kalah-blueBright text-xs font-bold text-white text-center cursor-pointer transition">
+                Choose Wallpaper
+              </label>
+              <input id="wallpaper-file-input" type="file" accept="image/*" class="hidden" onchange="handleWallpaperUpload(event)" />
+              <button onclick="resetChatWallpaper()" class="py-2.5 px-3.5 rounded-xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-xs font-semibold text-kalah-muted hover:text-white transition">
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-2.5 text-xs">
+            <div class="flex items-center justify-between py-1">
+              <span class="text-kalah-muted">Auto-Delete Timer</span>
+              <span class="font-semibold text-blue-400">Every 24 Hours</span>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-kalah-muted">Media Upload Limit</span>
+              <span class="font-semibold text-white">7 MB Max</span>
+            </div>
+            <div class="flex items-center justify-between py-1">
+              <span class="text-kalah-muted">Voice Note Limit</span>
+              <span class="font-semibold text-white">1 MB Max</span>
+            </div>
+          </div>
+
+          <button onclick="logoutUser()" class="w-full py-3 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 font-bold text-sm transition">
+            Sign Out
           </button>
-          <button onclick="closeMsgActionModal()" class="w-full py-2.5 rounded-2xl bg-kalah-card text-kalah-muted text-xs font-bold">
-            Close
+        </section>
+      </main>
+
+      <!-- FLOATING ACTION BUTTON (NEW CHAT) -->
+      <button id="fab-new-chat" onclick="openFriendsModal()" title="Start New Chat" class="fixed bottom-20 right-5 z-20 w-14 h-14 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright active:scale-95 text-white shadow-xl shadow-blue-700/40 flex items-center justify-center transition">
+        <i data-lucide="message-square-plus" class="w-6 h-6"></i>
+      </button>
+
+      <!-- BOTTOM NAVIGATION BAR -->
+      <nav class="bg-kalah-surface/95 backdrop-blur-md border-t border-kalah-border/70 px-2 py-2 flex items-center justify-around shrink-0 z-20">
+        <button id="nav-chats" onclick="switchMainTab('chats')" class="flex flex-col items-center gap-1 px-4 py-1 rounded-2xl text-white transition">
+          <div id="nav-pill-chats" class="px-4 py-1 rounded-full bg-kalah-blue/25 text-blue-400">
+            <i data-lucide="message-square" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-semibold">Chats</span>
+        </button>
+
+        <button id="nav-calls" onclick="switchMainTab('calls')" class="flex flex-col items-center gap-1 px-4 py-1 rounded-2xl text-kalah-muted hover:text-white transition">
+          <div id="nav-pill-calls" class="px-4 py-1 rounded-full">
+            <i data-lucide="phone" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-medium">Calls</span>
+        </button>
+
+        <button id="nav-profile" onclick="switchMainTab('profile')" class="flex flex-col items-center gap-1 px-4 py-1 rounded-2xl text-kalah-muted hover:text-white transition">
+          <div id="nav-pill-profile" class="px-4 py-1 rounded-full">
+            <i data-lucide="user-circle" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-medium">Profile</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ==================== CHAT CONVERSATION ROOM OVERLAY ==================== -->
+    <div id="chat-room" class="hidden fixed inset-0 z-30 max-w-md mx-auto bg-kalah-bg flex flex-col h-screen">
+      <div class="bg-kalah-surface/95 backdrop-blur-md border-b border-kalah-border px-3 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button onclick="closeChatRoom()" class="p-2 rounded-full hover:bg-kalah-card text-white transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          </button>
+          <img id="room-avatar" src="" alt="" class="w-10 h-10 rounded-full object-cover bg-kalah-card border border-kalah-border shrink-0" />
+          <div id="room-ai-avatar" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-kalah-blue to-cyan-400 flex items-center justify-center shrink-0">
+            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+          </div>
+          <div class="min-w-0">
+            <h2 id="room-name" class="font-bold text-sm text-white truncate">Chat</h2>
+            <p id="room-status" class="text-[11px] text-kalah-muted truncate">Online</p>
+          </div>
+        </div>
+
+        <div id="room-action-buttons" class="flex items-center gap-1 shrink-0">
+          <button id="room-game-btn" onclick="openOrbGame()" title="Kalah Orb Tap" class="p-2 rounded-full hover:bg-kalah-card text-cyan-300 hover:text-white transition">
+            <i data-lucide="gamepad-2" class="w-5 h-5"></i>
+          </button>
+          <button id="room-group-call-btn" onclick="startGroupVoiceCall()" title="Group Voice Call" class="hidden p-2 rounded-full hover:bg-kalah-card text-blue-400 hover:text-white transition">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </button>
+          <button id="room-call-btn" onclick="startVoiceCall()" title="Voice Call" class="p-2 rounded-full hover:bg-kalah-card text-blue-400 hover:text-white transition">
+            <i data-lucide="phone" class="w-5 h-5"></i>
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- ==================== 3C. ONE-TIME PHOTO VIEWER MODAL ==================== -->
-    <div id="view-once-modal" class="fixed inset-0 z-[70] bg-black/95 flex flex-col justify-between p-4 hidden">
-      <div class="flex items-center justify-between text-white">
-        <span class="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-bold text-blue-300">1x One-Time Photo</span>
-        <button onclick="closeViewOnceModal()" class="p-2 rounded-full bg-white/10 text-white">
-          <i data-lucide="x" class="w-5 h-5"></i>
+      <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 chat-wallpaper"></div>
+
+      <!-- REPLY PREVIEW BAR -->
+      <div id="reply-preview-bar" class="hidden px-4 py-2 bg-kalah-card/95 border-t border-kalah-border flex items-center justify-between gap-2 shrink-0">
+        <div class="min-w-0 border-l-2 border-blue-400 pl-2.5">
+          <p id="reply-preview-sender" class="text-[11px] font-bold text-blue-300 truncate">Replying to</p>
+          <p id="reply-preview-text" class="text-xs text-kalah-muted truncate">Message preview</p>
+        </div>
+        <button onclick="clearReplyTarget()" class="p-1 rounded-lg hover:bg-kalah-surface text-kalah-muted hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
-      <div class="my-auto flex justify-center">
-        <img id="view-once-img" src="" alt="One-Time Photo" class="max-h-[75dvh] max-w-full rounded-2xl object-contain shadow-2xl" />
+
+      <!-- VOICE RECORDING BAR -->
+      <div id="recording-bar" class="hidden bg-kalah-surface border-t border-kalah-border px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+          <span id="record-timer" class="text-sm font-mono font-bold text-red-400">00:00</span>
+          <span class="text-xs text-kalah-muted">Recording (Max 1MB)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="cancelVoiceRecording()" class="px-3 py-1.5 rounded-xl bg-kalah-card text-xs font-semibold text-kalah-muted hover:text-white">
+            Cancel
+          </button>
+          <button onclick="stopAndSendVoice()" class="px-3.5 py-1.5 rounded-xl bg-kalah-blue hover:bg-kalah-blueBright text-xs font-bold text-white flex items-center gap-1">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i> Send
+          </button>
+        </div>
       </div>
-      <p class="text-center text-xs text-kalah-muted">Closing will lock this photo permanently</p>
+
+      <!-- MESSAGE INPUT BAR -->
+      <div id="chat-input-bar" class="bg-kalah-surface/95 backdrop-blur-md border-t border-kalah-border px-2.5 py-2.5 flex items-center gap-1.5 shrink-0">
+        <button id="attach-media-btn" onclick="document.getElementById('chat-media-input').click()" title="Send Photo or Video (Max 7MB)" class="p-2.5 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-blue-400 transition shrink-0">
+          <i data-lucide="paperclip" class="w-5 h-5"></i>
+        </button>
+        <input id="chat-media-input" type="file" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(event)" />
+
+        <button id="view-once-toggle-btn" onclick="toggleViewOnceMode()" title="1x One-Time Photo" class="px-2.5 py-3 rounded-full bg-kalah-card border border-kalah-border text-[11px] font-extrabold text-kalah-muted hover:text-white transition shrink-0">
+          1x
+        </button>
+
+        <input
+          id="message-text-input"
+          type="text"
+          oninput="toggleMicSendBtn()"
+          onkeydown="if(event.key==='Enter') { event.preventDefault(); sendTextMessage(); }"
+          placeholder="Message..."
+          class="flex-1 px-4 py-2.5 rounded-2xl bg-kalah-card border border-kalah-border/80 focus:border-kalah-blueBright focus:outline-none text-sm text-white placeholder-kalah-muted"
+        />
+
+        <button id="mic-record-btn" onclick="startVoiceRecording()" title="Record Voice Message (Max 1MB)" class="p-3 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-400 transition shrink-0">
+          <i data-lucide="mic" class="w-5 h-5"></i>
+        </button>
+
+        <button id="send-text-btn" onclick="sendTextMessage()" title="Send Message" class="hidden p-3 rounded-full bg-kalah-blue hover:bg-kalah-blueBright text-white transition shrink-0">
+          <i data-lucide="send" class="w-5 h-5"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- ==================== 3D. CUTE MINI GAME (KALAH ORB TAP) ==================== -->
-    <div id="orb-game-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl">
+    <!-- ==================== FRIENDS & DIRECTORY MODAL ==================== -->
+    <div id="friends-modal" class="hidden fixed inset-0 z-40 max-w-md mx-auto bg-black/75 backdrop-blur-sm flex items-end">
+      <div class="w-full bg-kalah-surface border-t border-kalah-border rounded-t-3xl p-5 max-h-[82vh] flex flex-col space-y-4">
         <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
-              <i data-lucide="sparkles" class="w-4 h-4 text-blue-400"></i>
-              <span>Kalah Orb Tap</span>
-            </h3>
-            <p class="text-[11px] text-kalah-muted">Score: <span id="orb-score-val" class="text-blue-400 font-bold">0</span> • Time: <span id="orb-time-val" class="text-cyan-300 font-bold">20s</span></p>
-          </div>
-          <button onclick="closeOrbGame()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <div id="orb-arena" class="relative h-56 rounded-2xl border border-kalah-border bg-gradient-to-b from-[#07142b] to-[#040914] overflow-hidden flex items-center justify-center">
-          <button id="tap-orb-btn" onclick="hitFloatingOrb()" class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-300 shadow-lg shadow-cyan-400/40 flex items-center justify-center text-xl font-bold text-[#050a14] active:scale-90 transition cursor-pointer">
-            ✨
-          </button>
-        </div>
-
-        <div class="flex gap-2">
-          <button onclick="startOrbGameRound()" class="flex-1 py-2.5 rounded-2xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-white text-xs font-bold transition">
-            Play Again
-          </button>
-          <button onclick="sendOrbScoreToChat()" class="flex-1 py-2.5 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-white text-xs font-bold transition">
-            Send Score
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== 4. FIND FRIENDS MODAL ==================== -->
-    <div id="friends-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[82dvh] flex flex-col shadow-2xl">
-        <div class="flex items-center justify-between pb-3 border-b border-kalah-border">
-          <div>
-            <h3 class="text-base font-bold text-white">Find Friends on Kalah Chat</h3>
-            <p class="text-xs text-kalah-muted">Search by phone number or tap a friend to chat</p>
-          </div>
-          <button onclick="closeFriendsModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+          <h3 class="text-base font-extrabold text-white">Kalah Chat Friends</h3>
+          <button onclick="closeFriendsModal()" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
 
-        <div class="mt-3 relative">
-          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-          <input id="directory-search-input" type="text" oninput="renderDirectoryList()" placeholder="Enter friend's phone number or name..." class="w-full bg-kalah-card border border-kalah-border rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-        </div>
+        <input
+          id="directory-search-input"
+          type="text"
+          oninput="renderDirectoryList()"
+          placeholder="Search friend by name or phone..."
+          class="w-full px-4 py-2.5 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white"
+        />
 
-        <div id="directory-list-container" class="flex-1 overflow-y-auto mt-3 space-y-2 pr-1"></div>
+        <div id="directory-list-container" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
       </div>
     </div>
 
-    <!-- ==================== 4B. CREATE GROUP MODAL ==================== -->
-    <div id="create-group-modal" class="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 max-h-[85dvh] flex flex-col shadow-2xl space-y-4">
-        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
-          <div>
-            <h3 class="text-base font-bold text-white">Create New Group</h3>
-            <p class="text-xs text-kalah-muted">Select friends & set group name (24h auto-delete)</p>
-          </div>
-          <button onclick="closeCreateGroupModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+    <!-- ==================== CREATE GROUP MODAL ==================== -->
+    <div id="create-group-modal" class="hidden fixed inset-0 z-40 max-w-md mx-auto bg-black/75 backdrop-blur-sm flex items-end">
+      <div class="w-full bg-kalah-surface border-t border-kalah-border rounded-t-3xl p-5 max-h-[85vh] flex flex-col space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-extrabold text-white">Create New Group</h3>
+          <button onclick="closeCreateGroupModal()" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
 
-        <div>
-          <label class="text-xs font-semibold text-kalah-muted uppercase">Group Name</label>
-          <input id="new-group-name-input" type="text" placeholder="e.g. Kalah Squad" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-2xl px-4 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-        </div>
+        <input
+          id="new-group-name-input"
+          type="text"
+          placeholder="Group name (e.g. Kalah Squad)..."
+          class="w-full px-4 py-2.5 rounded-2xl bg-kalah-bg border border-kalah-border focus:border-kalah-blueBright focus:outline-none text-sm text-white"
+        />
 
-        <div class="flex-1 overflow-y-auto space-y-2 pr-1">
-          <p class="text-xs font-semibold text-kalah-muted uppercase">Select Members</p>
-          <div id="group-members-checkbox-list" class="space-y-2"></div>
-        </div>
+        <div class="text-xs font-semibold text-kalah-muted">Select friends to add:</div>
+        <div id="group-members-checkbox-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
 
-        <button onclick="createNewGroup()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-kalah-blue to-kalah-blueBright text-white font-bold text-sm shadow-lg transition">
+        <button onclick="createNewGroup()" class="w-full py-3 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-sm font-bold text-white transition">
           Create Group
         </button>
       </div>
     </div>
 
-    <!-- ==================== 4C. ADD FRIEND TO CALL MODAL ==================== -->
-    <div id="add-to-call-modal" class="fixed inset-0 z-[65] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center hidden">
-      <div class="bg-kalah-surface border border-kalah-border w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 max-h-[75dvh] flex flex-col shadow-2xl space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-kalah-border">
-          <div>
-            <h3 class="text-sm font-bold text-white">Add Friend to Call</h3>
-            <p class="text-[11px] text-kalah-muted">Invite another friend into this call</p>
-          </div>
-          <button onclick="closeAddFriendToCallModal()" class="p-2 rounded-full bg-kalah-card text-kalah-muted hover:text-white">
+    <!-- ==================== MESSAGE EMOJI REACT & DELETE MODAL ==================== -->
+    <div id="msg-action-modal" class="hidden fixed inset-0 z-50 max-w-md mx-auto bg-black/70 backdrop-blur-xs flex items-center justify-center p-5">
+      <div class="w-full bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-3 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-kalah-muted">React with Emoji</span>
+          <button onclick="closeMsgActionModal()" class="p-1 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white">
             <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="cute-emoji-grid" class="grid grid-cols-6 gap-1.5 text-center"></div>
+        <button id="btn-delete-everyone" onclick="deleteSelectedMessageForEveryone()" class="hidden w-full py-2.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/40 text-red-400 text-xs font-bold transition">
+          Delete for everyone
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 1X ONE-TIME PHOTO VIEWER MODAL ==================== -->
+    <div id="view-once-modal" class="hidden fixed inset-0 z-[65] max-w-md mx-auto bg-black/95 flex flex-col items-center justify-center p-4">
+      <div class="w-full flex items-center justify-between mb-3">
+        <span class="px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-xs font-bold text-blue-300">1x View Once Photo</span>
+        <button onclick="closeViewOnceModal()" class="p-2 rounded-full bg-kalah-surface text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <img id="view-once-img" src="" alt="One-time photo" class="max-h-[75vh] max-w-full rounded-2xl object-contain" />
+    </div>
+
+    <!-- ==================== KALAH ORB TAP MINI GAME MODAL ==================== -->
+    <div id="orb-game-modal" class="hidden fixed inset-0 z-[60] max-w-md mx-auto bg-black/85 backdrop-blur-sm flex flex-col justify-between p-4">
+      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+            <span>Kalah Orb Tap</span>
+            <span class="text-cyan-300">✨</span>
+          </h3>
+          <p class="text-[11px] text-kalah-muted">Tap the glowing orb fast!</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <p class="text-[10px] text-kalah-muted uppercase">Score</p>
+            <p id="orb-score-val" class="text-sm font-extrabold text-cyan-300">0</p>
+          </div>
+          <div class="text-right">
+            <p class="text-[10px] text-kalah-muted uppercase">Time</p>
+            <p id="orb-time-val" class="text-sm font-extrabold text-blue-400">20s</p>
+          </div>
+          <button onclick="closeOrbGame()" class="p-2 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="orb-arena" class="relative flex-1 my-3 rounded-3xl bg-kalah-surface/70 border border-kalah-border overflow-hidden">
+        <button id="tap-orb-btn" onclick="hitFloatingOrb()" class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-300 via-blue-500 to-indigo-600 shadow-lg shadow-blue-500/50 flex items-center justify-center text-white font-extrabold text-xs active:scale-90 transition-all duration-150">
+          TAP
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="startOrbGameRound()" class="py-3 rounded-2xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-xs font-bold text-white transition">
+          Play Again
+        </button>
+        <button onclick="sendOrbScoreToChat()" class="py-3 rounded-2xl bg-kalah-blue hover:bg-kalah-blueBright text-xs font-bold text-white transition">
+          Send Score to Chat
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== ADD FRIEND TO CALL MODAL ==================== -->
+    <div id="add-to-call-modal" class="hidden fixed inset-0 z-[55] max-w-md mx-auto bg-black/80 backdrop-blur-sm flex items-end">
+      <div class="w-full bg-kalah-surface border-t border-kalah-border rounded-t-3xl p-5 max-h-[75vh] flex flex-col space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-extrabold text-white">Add Friend to Call</h3>
+          <button onclick="closeAddFriendToCallModal()" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
         <div id="add-call-friends-list" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
       </div>
     </div>
 
-    <!-- ==================== 5. WHATSAPP-STYLE VOICE & GROUP CALL SCREEN ==================== -->
-    <div id="call-overlay" class="fixed inset-0 z-50 bg-gradient-to-b from-[#07152e] via-[#050c1a] to-[#030710] flex flex-col justify-between p-8 hidden">
-      <div class="text-center space-y-1 pt-4">
-        <div class="flex items-center justify-center gap-1.5 text-xs text-blue-300/80 font-medium">
-          <i data-lucide="lock" class="w-3.5 h-3.5"></i>
-          <span id="call-header-label">Kalah End-to-End Encrypted Voice</span>
-        </div>
+    <!-- ==================== VOICE CALL OVERLAY (WEBRTC) ==================== -->
+    <div id="call-overlay" class="hidden fixed inset-0 z-50 max-w-md mx-auto bg-gradient-to-b from-[#0b1933] via-kalah-bg to-[#050912] flex flex-col justify-between p-6 text-center">
+      <div class="pt-6 space-y-1">
+        <span class="px-3 py-1 rounded-full bg-kalah-blue/20 border border-blue-500/30 text-[11px] font-semibold text-blue-300">
+          Kalah Voice Call
+        </span>
+        <p id="call-status-text" class="text-xs text-kalah-muted pt-2">Connecting...</p>
+        <p id="call-participants-list" class="hidden text-[11px] text-cyan-300 font-semibold pt-1"></p>
       </div>
 
-      <div class="flex flex-col items-center text-center space-y-5 my-auto">
-        <div class="relative">
-          <div id="call-pulse-ring" class="absolute inset-0 rounded-full bg-kalah-blueBright/30 animate-pulse-ring"></div>
-          <img id="call-peer-avatar" src="" alt="Caller" class="w-32 h-32 rounded-full object-cover border-4 border-kalah-blueBright/60 relative z-10 bg-kalah-card shadow-2xl" />
+      <div class="flex flex-col items-center gap-4 my-auto">
+        <div class="relative flex items-center justify-center">
+          <div id="call-pulse-ring" class="absolute w-32 h-32 rounded-full bg-kalah-blue/30 pulse-ring"></div>
+          <img id="call-peer-avatar" src="" alt="" class="relative w-28 h-28 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card shadow-2xl" />
         </div>
-        <div class="space-y-1.5">
-          <h2 id="call-peer-name" class="text-2xl font-extrabold text-white tracking-tight">Friend Name</h2>
-          <p id="call-peer-phone" class="text-xs text-kalah-muted font-medium">+94 77 000 0000</p>
-          <p id="call-status-text" class="text-sm font-semibold text-blue-400 pt-1">Calling...</p>
-          <p id="call-participants-list" class="text-[11px] text-cyan-300/90 pt-1 hidden"></p>
+        <div>
+          <h2 id="call-peer-name" class="text-xl font-extrabold text-white">Friend</h2>
+          <p id="call-peer-phone" class="text-xs text-kalah-muted mt-0.5"></p>
         </div>
       </div>
 
       <audio id="remote-audio" autoplay playsinline></audio>
 
-      <div class="pb-6">
-        <div id="incoming-call-controls" class="flex items-center justify-around max-w-xs mx-auto hidden">
-          <button onclick="declineIncomingCall()" class="flex flex-col items-center gap-2">
-            <div class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-600/40 transition">
-              <i data-lucide="phone-off" class="w-7 h-7"></i>
-            </div>
-            <span class="text-xs font-semibold text-red-300">Decline</span>
-          </button>
+      <div id="incoming-call-controls" class="hidden flex items-center justify-around pb-6">
+        <button onclick="declineIncomingCall()" class="flex flex-col items-center gap-2">
+          <div class="w-16 h-16 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-900/50 transition">
+            <i data-lucide="phone-off" class="w-7 h-7"></i>
+          </div>
+          <span class="text-xs text-kalah-muted">Decline</span>
+        </button>
 
-          <button onclick="acceptIncomingCall()" class="flex flex-col items-center gap-2">
-            <div class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/40 animate-bounce">
-              <i data-lucide="phone" class="w-7 h-7"></i>
-            </div>
-            <span class="text-xs font-semibold text-emerald-300">Accept</span>
-          </button>
-        </div>
-
-        <div id="active-call-controls" class="bg-kalah-surface/90 border border-kalah-border rounded-3xl p-4 flex items-center justify-around max-w-xs mx-auto shadow-2xl">
-          <button onclick="openAddFriendToCallModal()" id="btn-add-friend-call" title="Add Friend" class="p-3.5 rounded-full bg-kalah-card text-cyan-300 hover:bg-kalah-hover transition">
-            <i data-lucide="user-plus" class="w-5 h-5"></i>
-          </button>
-          <button onclick="toggleCallSpeaker()" id="btn-call-speaker" title="Speaker" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="volume-2" class="w-5 h-5"></i>
-          </button>
-          <button onclick="toggleCallMute()" id="btn-call-mute" title="Mute" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition">
-            <i data-lucide="mic" class="w-5 h-5"></i>
-          </button>
-          <button onclick="endCurrentCall()" title="End Call" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/40 transition">
-            <i data-lucide="phone-off" class="w-6 h-6"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-  <!-- ==================== 2. MAIN APP SHELL ==================== -->
-  <div id="main-app" class="h-[100dvh] w-full max-w-lg mx-auto bg-kalah-bg flex flex-col relative hidden border-x border-kalah-border/40">
-
-    <!-- TOP HEADER -->
-    <header id="main-header" class="bg-kalah-surface px-4 pt-4 pb-3 border-b border-kalah-border/60 shrink-0 z-20">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h1 class="text-[22px] font-extrabold tracking-tight text-white">Kalah Chat</h1>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-kalah-blue/20 text-blue-400 border border-blue-500/30">24H</span>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button onclick="shareAppLink()" title="Share Link" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-400 border border-kalah-border transition">
-            <i data-lucide="share-2" class="w-4 h-4"></i>
-          </button>
-          <button onclick="openCreateGroupModal()" title="New Group" class="px-3 py-1.5 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-400 text-xs font-bold border border-kalah-border transition flex items-center gap-1">
-            <i data-lucide="users" class="w-3.5 h-3.5"></i>
-            <span>+ Group</span>
-          </button>
-          <button onclick="switchMainTab('profile')" title="Profile" class="p-2 rounded-full hover:bg-kalah-card text-white transition">
-            <i data-lucide="more-vertical" class="w-5 h-5"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Search Bar & Filter Chips -->
-      <div id="header-search-wrap" class="mt-3">
-        <div class="relative flex items-center">
-          <i data-lucide="search" class="w-4 h-4 text-kalah-muted absolute left-4 pointer-events-none"></i>
-          <input id="chat-search-input" type="text" oninput="renderChatList()" placeholder="Search chats, groups or phone..." class="w-full bg-kalah-card text-white placeholder-kalah-muted text-sm rounded-full pl-11 pr-4 py-2.5 border border-kalah-border/70 focus:border-kalah-blueBright outline-none transition" />
-        </div>
-
-        <div class="flex items-center gap-2 mt-3 overflow-x-auto no-scrollbar">
-          <button onclick="setChatFilter('all')" id="chip-all" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-blue text-white transition shrink-0">All</button>
-          <button onclick="setChatFilter('groups')" id="chip-groups" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">Groups (<span id="groups-count-badge">0</span>)</button>
-          <button onclick="setChatFilter('unread')" id="chip-unread" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">Unread</button>
-          <button onclick="setChatFilter('friends')" id="chip-friends" class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-kalah-card text-kalah-muted hover:text-white border border-kalah-border transition shrink-0">Friends (<span id="friends-count-badge">0</span>)</button>
-        </div>
-      </div>
-    </header>
-
-    <!-- TAB 1: CHATS LIST -->
-    <main id="view-chats" class="flex-1 overflow-y-auto divide-y divide-kalah-border/30 pb-24">
-      <div class="px-4 py-2 bg-kalah-surface/60 flex items-center justify-between text-[11px] text-kalah-muted border-b border-kalah-border/40">
-        <span class="flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i> Chats & groups auto-delete after 24h</span>
-        <button onclick="enableBrowserNotifications()" id="notify-perm-btn" class="text-blue-400 font-semibold hover:underline flex items-center gap-1">
-          <i data-lucide="bell" class="w-3 h-3"></i> Alerts On
+        <button onclick="acceptIncomingCall()" class="flex flex-col items-center gap-2">
+          <div class="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-900/50 transition">
+            <i data-lucide="phone" class="w-7 h-7"></i>
+          </div>
+          <span class="text-xs text-kalah-muted">Accept</span>
         </button>
       </div>
 
-      <!-- Pinned Kalah AI Chat Item -->
-      <div onclick="openAIChat()" class="px-4 py-3.5 flex items-center gap-3.5 hover:bg-kalah-surface/80 active:bg-kalah-card cursor-pointer transition bg-gradient-to-r from-blue-950/30 to-transparent">
-        <div class="relative shrink-0">
-          <div class="w-[52px] h-[52px] rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 p-[2px] shadow-md shadow-blue-500/20">
-            <div class="w-full h-full rounded-full bg-kalah-bg flex items-center justify-center">
-              <i data-lucide="sparkles" class="w-6 h-6 text-blue-400"></i>
-            </div>
-          </div>
-          <span class="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-kalah-blueBright border-2 border-kalah-bg flex items-center justify-center">
-            <i data-lucide="bot" class="w-2.5 h-2.5 text-white"></i>
-          </span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              <h3 class="font-bold text-[15px] text-white truncate">Kalah AI</h3>
-              <span class="px-1.5 py-0.5 text-[9px] font-bold bg-blue-500/20 text-blue-300 rounded border border-blue-400/30">AI</span>
-            </div>
-            <span class="text-[11px] text-blue-400 font-medium">Pinned</span>
-          </div>
-          <p id="ai-last-preview" class="text-xs text-kalah-muted truncate mt-0.5">Ask anything in Sinhala or English ✨</p>
-        </div>
-      </div>
-
-      <div id="chat-list-container" class="divide-y divide-kalah-border/30"></div>
-    </main>
-
-    <!-- TAB 2: CALLS HISTORY -->
-    <main id="view-calls" class="flex-1 overflow-y-auto p-4 pb-24 hidden space-y-3">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-kalah-muted">Recent Voice Calls</h2>
-        <button onclick="openFriendsModal()" class="text-xs font-semibold text-blue-400 hover:underline flex items-center gap-1">
-          <i data-lucide="phone-plus" class="w-3.5 h-3.5"></i> New Call
-        </button>
-      </div>
-      <div id="calls-list-container" class="space-y-2"></div>
-    </main>
-
-    <!-- TAB 3: PROFILE + CUSTOM CHAT WALLPAPER (<1MB) -->
-    <main id="view-profile" class="flex-1 overflow-y-auto p-4 pb-24 hidden space-y-5">
-      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-5 flex flex-col items-center text-center space-y-3">
-        <label for="edit-avatar-input" class="relative cursor-pointer group">
-          <img id="profile-avatar-img" src="" alt="Profile" class="w-24 h-24 rounded-full object-cover border-2 border-kalah-blueBright bg-kalah-card" />
-          <div class="absolute bottom-0 right-0 bg-kalah-blue p-2 rounded-full border-2 border-kalah-surface shadow-md">
-            <i data-lucide="camera" class="w-4 h-4 text-white"></i>
-          </div>
-        </label>
-        <input type="file" id="edit-avatar-input" accept="image/*" class="hidden" onchange="handleAvatarSelect(event, 'profile-avatar-img', 'edit')" />
-
-        <div>
-          <h2 id="profile-display-name" class="text-lg font-bold text-white">User Name</h2>
-          <p id="profile-display-phone" class="text-xs text-blue-400 font-semibold mt-0.5">+94 77 000 0000</p>
-        </div>
-
-        <div class="w-full space-y-3 pt-2 text-left">
-          <div>
-            <label class="text-[11px] font-semibold text-kalah-muted uppercase">Display Name</label>
-            <input id="edit-name-input" type="text" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-          </div>
-          <div>
-            <label class="text-[11px] font-semibold text-kalah-muted uppercase">Bio / About</label>
-            <input id="edit-bio-input" type="text" class="w-full mt-1 bg-kalah-card border border-kalah-border rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-kalah-blueBright" />
-          </div>
-          <button onclick="saveProfileChanges()" class="w-full py-2.5 rounded-xl bg-kalah-blue hover:bg-kalah-blueBright text-white font-semibold text-sm transition">
-            Save Profile
-          </button>
-        </div>
-      </div>
-
-      <!-- Chat Wallpaper Selector (<1MB) -->
-      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-              <i data-lucide="image" class="w-4 h-4 text-blue-400"></i>
-              <span>Chat Wallpaper</span>
-            </h3>
-            <p class="text-[11px] text-kalah-muted">Pick a custom photo under 1MB</p>
-          </div>
-          <button onclick="resetChatWallpaper()" class="px-2.5 py-1 rounded-lg bg-kalah-card text-[11px] text-kalah-muted hover:text-white border border-kalah-border">
-            Reset
-          </button>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <div id="wallpaper-preview-box" class="w-16 h-16 rounded-2xl border border-kalah-border chat-wallpaper shrink-0"></div>
-          <div class="flex-1 space-y-1.5">
-            <input type="file" id="wallpaper-file-input" accept="image/*" class="hidden" onchange="handleWallpaperUpload(event)" />
-            <button onclick="document.getElementById('wallpaper-file-input').click()" class="w-full py-2.5 px-3 rounded-xl bg-kalah-card hover:bg-kalah-hover border border-kalah-border text-xs font-bold text-blue-300 transition flex items-center justify-center gap-1.5">
-              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-              <span>Choose Wallpaper (&lt;1MB)</span>
-            </button>
-            <p id="wallpaper-status-text" class="text-[10px] text-kalah-muted truncate">Default Kalah dark pattern</p>
-          </div>
-        </div>
-      </div>
-
-      <button onclick="shareAppLink()" class="w-full py-3 rounded-2xl bg-kalah-surface border border-kalah-border hover:bg-kalah-card text-blue-300 font-bold text-sm transition flex items-center justify-center gap-2">
-        <i data-lucide="share-2" class="w-4 h-4"></i>
-        <span>Share Kalah Chat Link</span>
-      </button>
-
-      <div class="bg-kalah-surface border border-kalah-border rounded-3xl p-4 space-y-2 text-xs text-kalah-muted">
-        <div class="flex justify-between">
-          <span>Auto-Delete Timer:</span>
-          <span class="text-white font-semibold">24 Hours</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Photo / Video Max Size:</span>
-          <span class="text-white font-semibold">7.0 MB</span>
-        </div>
-        <div class="flex justify-between">
-          <span>Voice Note Max Size:</span>
-          <span class="text-white font-semibold">1.0 MB</span>
-        </div>
-      </div>
-
-      <button onclick="logoutUser()" class="w-full py-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 font-bold text-sm hover:bg-red-500/25 transition flex items-center justify-center gap-2">
-        <i data-lucide="log-out" class="w-4 h-4"></i>
-        <span>Log Out</span>
-      </button>
-    </main>
-
-    <!-- SINGLE FLOATING ACTION BUTTON -->
-    <button id="fab-new-chat" onclick="openFriendsModal()" class="fixed bottom-24 right-5 z-20 w-14 h-14 rounded-2xl bg-gradient-to-br from-kalah-blueBright to-blue-700 text-white shadow-xl shadow-blue-600/40 flex items-center justify-center hover:scale-105 active:scale-95 transition border border-blue-400/30">
-      <i data-lucide="message-square-plus" class="w-6 h-6"></i>
-    </button>
-
-    <!-- BOTTOM NAVIGATION BAR -->
-    <nav id="bottom-nav" class="bg-kalah-surface border-t border-kalah-border/70 px-2 py-2 flex items-center justify-around shrink-0 z-20">
-      <button onclick="switchMainTab('chats')" id="nav-chats" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-white transition">
-        <div id="nav-pill-chats" class="px-4 py-1 rounded-full bg-kalah-blue/25 text-blue-400 transition">
-          <i data-lucide="message-square" class="w-5 h-5"></i>
-        </div>
-        <span class="text-[11px] font-bold">Chats</span>
-      </button>
-
-      <button onclick="switchMainTab('calls')" id="nav-calls" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
-        <div id="nav-pill-calls" class="px-4 py-1 rounded-full transition">
-          <i data-lucide="phone" class="w-5 h-5"></i>
-        </div>
-        <span class="text-[11px] font-semibold">Calls</span>
-      </button>
-
-      <button onclick="openAIChat()" id="nav-ai" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
-        <div id="nav-pill-ai" class="px-4 py-1 rounded-full transition">
-          <i data-lucide="sparkles" class="w-5 h-5"></i>
-        </div>
-        <span class="text-[11px] font-semibold">Kalah AI</span>
-      </button>
-
-      <button onclick="switchMainTab('profile')" id="nav-profile" class="flex flex-col items-center gap-1 py-1 px-4 rounded-2xl text-kalah-muted hover:text-white transition">
-        <div id="nav-pill-profile" class="px-4 py-1 rounded-full transition">
-          <i data-lucide="user-circle" class="w-5 h-5"></i>
-        </div>
-        <span class="text-[11px] font-semibold">Profile</span>
-      </button>
-    </nav>
-
-    <!-- ==================== 3. ACTIVE CHAT ROOM OVERLAY ==================== -->
-    <div id="chat-room" class="fixed inset-0 z-30 max-w-lg mx-auto bg-kalah-bg flex flex-col hidden">
-      <div class="bg-kalah-surface px-3 py-3 border-b border-kalah-border flex items-center justify-between shrink-0 shadow-md">
-        <div class="flex items-center gap-2 min-w-0">
-          <button onclick="closeChatRoom()" class="p-2 rounded-full hover:bg-kalah-card text-white transition shrink-0">
-            <i data-lucide="arrow-left" class="w-5 h-5"></i>
-          </button>
-          <img id="room-avatar" src="" alt="DP" class="w-10 h-10 rounded-full object-cover border border-kalah-blue/50 bg-kalah-card shrink-0" />
-          <div id="room-ai-avatar" class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shrink-0 hidden">
-            <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
-          </div>
-          <div class="min-w-0">
-            <h3 id="room-name" class="font-bold text-sm text-white truncate">Friend Name</h3>
-            <p id="room-status" class="text-[11px] text-blue-400 truncate">Online</p>
-          </div>
-        </div>
-
-        <div id="room-action-buttons" class="flex items-center gap-1 shrink-0">
-          <button id="room-game-btn" onclick="openOrbGame()" title="Play Mini Game" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-hover text-blue-300 transition border border-kalah-border">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
-          </button>
-          <button id="room-group-call-btn" onclick="startGroupVoiceCall()" title="Group Call" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-blue text-cyan-300 hover:text-white transition border border-kalah-border hidden">
-            <i data-lucide="users" class="w-4 h-4"></i>
-          </button>
-          <button id="room-call-btn" onclick="startVoiceCall()" title="Voice Call" class="p-2 rounded-full bg-kalah-card hover:bg-kalah-blue text-white transition border border-kalah-border">
-            <i data-lucide="phone" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-
-      <div id="messages-container" class="flex-1 overflow-y-auto p-3.5 space-y-3 chat-wallpaper">
-        <div class="flex justify-center my-2">
-          <span class="px-3 py-1 rounded-xl bg-kalah-surface/90 border border-kalah-border text-[11px] text-kalah-muted text-center shadow">
-            🔒 Messages vanish after 24h
-          </span>
-        </div>
-      </div>
-
-      <!-- Reply Preview Bar -->
-      <div id="reply-preview-bar" class="bg-kalah-surface border-t border-kalah-border px-3.5 py-2 flex items-center justify-between gap-2 hidden">
-        <div class="border-l-2 border-kalah-blueBright pl-2.5 min-w-0">
-          <p id="reply-preview-sender" class="text-[11px] font-bold text-blue-400 truncate">Replying to...</p>
-          <p id="reply-preview-text" class="text-xs text-kalah-muted truncate">Message text</p>
-        </div>
-        <button onclick="clearReplyTarget()" class="p-1.5 rounded-full hover:bg-kalah-card text-kalah-muted">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
-      </div>
-
-      <!-- Recording Bar -->
-      <div id="recording-bar" class="bg-kalah-surface border-t border-red-500/40 px-4 py-3 flex items-center justify-between hidden">
-        <div class="flex items-center gap-2.5">
-          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
-          <span class="text-sm font-bold text-white">Recording... <span id="record-timer" class="text-red-400 font-mono">00:00</span></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button onclick="cancelVoiceRecording()" class="px-3 py-1.5 rounded-xl bg-kalah-card text-xs font-semibold text-red-400">Cancel</button>
-          <button onclick="stopAndSendVoice()" class="px-3.5 py-1.5 rounded-xl bg-kalah-blue text-xs font-bold text-white flex items-center gap-1">
-            <i data-lucide="send" class="w-3.5 h-3.5"></i> Send
-          </button>
-        </div>
-      </div>
-
-      <!-- Chat Input Bar (Includes View-Once Photo Toggle for Photos) -->
-      <div id="chat-input-bar" class="bg-kalah-surface px-3 py-2.5 border-t border-kalah-border flex items-end gap-1.5 shrink-0">
-        <button id="attach-media-btn" onclick="document.getElementById('media-file-input').click()" title="Send Photo or Video (<7MB)" class="p-3 rounded-full bg-kalah-card hover:bg-kalah-hover text-kalah-muted hover:text-white transition shrink-0">
-          <i data-lucide="paperclip" class="w-5 h-5"></i>
-        </button>
-        <input type="file" id="media-file-input" accept="image/*,video/*" class="hidden" onchange="handleMediaUpload(event)" />
-
-        <button id="view-once-toggle-btn" onclick="toggleViewOnceMode()" title="One-Time View Photo" class="px-2.5 py-3 rounded-full bg-kalah-card border border-kalah-border text-[11px] font-extrabold text-kalah-muted hover:text-white transition shrink-0">
-          1x
-        </button>
-
-        <div class="flex-1 bg-kalah-card border border-kalah-border focus-within:border-kalah-blueBright rounded-3xl px-3.5 py-2.5 flex items-center">
-          <input id="message-text-input" type="text" onkeydown="if(event.key==='Enter') sendTextMessage()" oninput="toggleMicSendBtn()" placeholder="Message..." class="w-full bg-transparent text-sm text-white placeholder-kalah-muted outline-none" />
-        </div>
-
-        <button id="mic-record-btn" onclick="startVoiceRecording()" title="Record Voice Note (<1MB)" class="p-3 rounded-full bg-kalah-blue hover:bg-kalah-blueBright text-white shadow-md transition shrink-0">
+      <div id="active-call-controls" class="flex items-center justify-center gap-4 pb-6">
+        <button id="btn-call-mute" onclick="toggleCallMute()" class="p-3.5 rounded-full bg-kalah-card text-white hover:bg-kalah-hover transition" title="Mute / Unmute">
           <i data-lucide="mic" class="w-5 h-5"></i>
         </button>
 
-        <button id="send-text-btn" onclick="sendTextMessage()" class="p-3 rounded-full bg-kalah-blueBright hover:bg-blue-500 text-white shadow-md transition shrink-0 hidden">
-          <i data-lucide="send" class="w-5 h-5"></i>
+        <button onclick="openAddFriendToCallModal()" class="p-3.5 rounded-full bg-kalah-card text-blue-300 hover:bg-kalah-hover transition" title="Add Friend">
+          <i data-lucide="user-plus" class="w-5 h-5"></i>
+        </button>
+
+        <button onclick="endCurrentCall()" class="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/50 transition" title="End Call">
+          <i data-lucide="phone-off" class="w-6 h-6"></i>
+        </button>
+
+        <button id="btn-call-speaker" onclick="toggleCallSpeaker()" class="p-3.5 rounded-full bg-kalah-blue text-white hover:bg-kalah-blueBright transition" title="Speaker">
+          <i data-lucide="volume-2" class="w-5 h-5"></i>
         </button>
       </div>
     </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDyVqsqYbsVr0ffvo_lUThdSHR6DlAV-2M",
@@ -813,7 +811,6 @@
       }, 3000);
     }
 
-    // ==================== SOUND EFFECTS & NOTIFICATIONS ====================
     function playToneSequence(notes, type = 'sine') {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -836,32 +833,20 @@
     }
 
     function playSendSound() {
-      playToneSequence([
-        [580, 0, 0.07, 0.06],
-        [860, 0.06, 0.09, 0.07]
-      ], 'sine');
+      playToneSequence([[580, 0, 0.07, 0.06], [860, 0.06, 0.09, 0.07]], 'sine');
     }
 
     function playReceiveSound() {
-      playToneSequence([
-        [660, 0, 0.09, 0.07],
-        [880, 0.09, 0.11, 0.07]
-      ], 'sine');
+      playToneSequence([[660, 0, 0.09, 0.07], [880, 0.09, 0.11, 0.07]], 'sine');
     }
 
     function playReactSound() {
-      playToneSequence([
-        [740, 0, 0.06, 0.05],
-        [980, 0.05, 0.07, 0.05]
-      ], 'triangle');
+      playToneSequence([[740, 0, 0.06, 0.05], [980, 0.05, 0.07, 0.05]], 'triangle');
     }
 
     function playNotificationTone(isCall = false) {
       if (isCall) {
-        playToneSequence([
-          [660, 0, 0.14, 0.08],
-          [880, 0.15, 0.16, 0.08]
-        ], 'triangle');
+        playToneSequence([[660, 0, 0.14, 0.08], [880, 0.15, 0.16, 0.08]], 'triangle');
       } else {
         playReceiveSound();
       }
@@ -907,7 +892,6 @@
       }
     }
 
-    // ==================== CUSTOM CHAT WALLPAPER (<1MB) ====================
     function applySavedWallpaper() {
       const wp = localStorage.getItem('kalah_custom_wallpaper');
       const msgArea = document.getElementById('messages-container');
@@ -941,12 +925,10 @@
       const file = event.target.files[0];
       event.target.value = '';
       if (!file) return;
-
       if (file.size > MAX_WALLPAPER_BYTES) {
         showToast('Wallpaper must be under 1MB!', 'error');
         return;
       }
-
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -966,14 +948,10 @@
       showToast('Wallpaper reset to default', 'info');
     }
 
-    // ==================== SHARE LINK ====================
     function shareAppLink() {
       const shareUrl = window.location.href;
       if (navigator.share) {
-        navigator.share({
-          title: 'Kalah Chat',
-          url: shareUrl
-        }).catch(() => {});
+        navigator.share({ title: 'Kalah Chat', url: shareUrl }).catch(() => {});
       } else if (navigator.clipboard) {
         navigator.clipboard.writeText(shareUrl).then(() => {
           showToast('Kalah Chat link copied!', 'success');
@@ -981,7 +959,6 @@
       }
     }
 
-    // ==================== PRIVATE LOCK ====================
     function submitGateLock() {
       const val = (document.getElementById('gate-lock-input').value || '').trim();
       if (val === UNLOCK_CODE) {
@@ -1198,13 +1175,11 @@
 
       fetchHiddenGeminiKey();
 
-      // Load local cached saved friends immediately so they never disappear
       try {
         const cachedSaved = localStorage.getItem(`kalah_saved_friends_${currentUser.phone}`);
         if (cachedSaved) savedFriendsMap = JSON.parse(cachedSaved);
       } catch (e) {}
 
-      // Sync permanent saved friends from Firebase
       db.ref(`${ROOT_NODE}/saved_friends/${currentUser.phone}`).on('value', (snap) => {
         savedFriendsMap = snap.val() || {};
         try {
@@ -1241,7 +1216,6 @@
       setInterval(run24HourCleanup, 60000);
     }
 
-    // ==================== PERMANENT ADD / REMOVE FRIEND ====================
     async function addPermanentFriend(peerPhone, peerObj = null) {
       if (!currentUser || !peerPhone || peerPhone === currentUser.phone) return;
       const source = peerObj || allUsersMap[peerPhone] || { phone: peerPhone, name: peerPhone };
@@ -1296,12 +1270,10 @@
       if (isSaved) {
         btn.className = 'px-2.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold transition';
         btn.textContent = 'Saved ✓';
-        btn.title = 'Tap to remove from permanent friends';
         btn.onclick = () => removePermanentFriend(activeChatPeer.phone);
       } else {
         btn.className = 'px-2.5 py-1.5 rounded-full bg-kalah-blue hover:bg-kalah-blueBright border border-blue-400/30 text-white text-[11px] font-bold transition';
         btn.textContent = '+ Friend';
-        btn.title = 'Save friend permanently';
         btn.onclick = () => addPermanentFriend(activeChatPeer.phone, activeChatPeer);
       }
     }
@@ -1338,7 +1310,6 @@
       document.getElementById('fab-new-chat').classList.toggle('hidden', tab !== 'chats');
     }
 
-    // ==================== GROUPS ====================
     function openCreateGroupModal() {
       selectedGroupMembers = new Set([currentUser.phone]);
       document.getElementById('new-group-name-input').value = '';
@@ -1536,7 +1507,6 @@
       });
     }
 
-    // ==================== DIRECT CHATS & SEEN / DELIVERED / SENT STATUS ====================
     const monitoredChatIds = new Set();
 
     function setupChatPreviewsListeners() {
@@ -1671,7 +1641,6 @@
           unread: groupUnreadCounts[g.id] || 0
         }));
 
-      // Merge live users and permanently saved friends so saved friends never disappear
       const mergedPeersMap = {};
       Object.values(savedFriendsMap).forEach(sf => {
         if (sf && sf.phone && sf.phone !== currentUser.phone) {
@@ -1708,7 +1677,6 @@
       } else if (currentChatFilter === 'friends') {
         combined = peerItems;
       } else {
-        // Show all groups + all saved friends + anyone with recent messages
         const persistentOrActivePeers = peerItems.filter(p => p.isSavedFriend || lastMessagesMap[p.data.phone]);
         combined = [...myGroups, ...(persistentOrActivePeers.length > 0 ? persistentOrActivePeers : peerItems)];
       }
@@ -1961,7 +1929,6 @@
       }
     }
 
-    // ==================== INLINE REACT & REPLY + ONE-TIME PHOTO ====================
     function toggleViewOnceMode() {
       viewOnceMode = !viewOnceMode;
       const btn = document.getElementById('view-once-toggle-btn');
@@ -2180,7 +2147,6 @@
         : (activeChatPeer.isGroup ? activeChatPeer.id : activeChatPeer.phone);
       const fingerprint = `${targetKey}::${text}`;
 
-      // Block duplicate double-fire within 1.5 seconds
       if (fingerprint === lastSentFingerprint && (now - lastSentTimestamp) < 1500) {
         return;
       }
@@ -2223,7 +2189,6 @@
       }
     }
 
-    // ==================== MEDIA (<7MB) & VOICE (<1MB) ====================
     function handleMediaUpload(event) {
       const file = event.target.files[0];
       event.target.value = '';
@@ -2367,7 +2332,6 @@
       document.getElementById('chat-input-bar').classList.remove('hidden');
     }
 
-    // ==================== CUTE MINI GAME: KALAH ORB TAP ====================
     function openOrbGame() {
       document.getElementById('orb-game-modal').classList.remove('hidden');
       lucide.createIcons();
@@ -2443,7 +2407,6 @@
       showToast('Score sent to chat!', 'success');
     }
 
-    // ==================== CALL ALERTS IN CHAT + WEBRTC VOICE CALL + GROUP CALL + ADD FRIEND ====================
     async function pushCallAlertMessage(targetPhoneOrGroup, text) {
       if (!currentUser || !targetPhoneOrGroup) return;
       const now = Date.now();
@@ -2583,10 +2546,7 @@
         timestamp: Date.now()
       });
 
-      await pushCallAlertMessage(
-        targetPhone,
-        `📞 ${currentUser.name} invited you to a voice call`
-      );
+      await pushCallAlertMessage(targetPhone, `📞 ${currentUser.name} invited you to a voice call`);
 
       if (!silent) {
         const name = allUsersMap[targetPhone]?.name || targetPhone;
@@ -2962,7 +2922,6 @@
       startVoiceCall();
     }
 
-    // ==================== KALAH AI ====================
     function fetchHiddenGeminiKey() {
       db.ref(`${ROOT_NODE}/config/gemini_key`).on('value', (snap) => {
         const val = snap.val();
@@ -3098,15 +3057,6 @@
       aiChatHistory.push({ role: 'user', text: userText, timestamp: now });
       renderAIMessages();
 
-      const apiKey = await ensureGeminiKeyLoaded();
-      if (!apiKey) {
-        const helpMsg = "⚠️ Gemini API Key එක Firebase RTDB (`kalah_messenger_v2/config/gemini_key`) හරහා load වෙලා නෑ. Firebase RTDB Rules expire වී ඇත්දැයි පරීක්ෂා කරන්න.";
-        aiChatHistory.push({ role: 'model', text: helpMsg, timestamp: Date.now() });
-        document.getElementById('ai-last-preview').textContent = helpMsg;
-        renderAIMessages();
-        return;
-      }
-
       const container = document.getElementById('messages-container');
       const typingDiv = document.createElement('div');
       typingDiv.id = 'ai-typing-indicator';
@@ -3116,6 +3066,11 @@
       container.scrollTop = container.scrollHeight;
 
       try {
+        const apiKey = await ensureGeminiKeyLoaded();
+        if (!apiKey) {
+          throw new Error("Gemini API Key එක හමු වුණේ නෑ. Firebase RTDB (`kalah_messenger_v2/config/gemini_key`) එකේ key එක තියෙනවාද බලන්න.");
+        }
+
         const contents = aiChatHistory
           .filter(m => m && typeof m.text === 'string' && !m.text.startsWith('❌ AI Error:') && !m.text.startsWith('⚠️'))
           .slice(-10)
@@ -3130,17 +3085,19 @@
 
         aiChatHistory.push({ role: 'model', text: replyText, timestamp: Date.now() });
         localStorage.setItem('kalah_ai_history', JSON.stringify(aiChatHistory.slice(-30)));
-        document.getElementById('ai-last-preview').textContent = replyText;
+        const prevEl = document.getElementById('ai-last-preview');
+        if (prevEl) prevEl.textContent = replyText;
         renderAIMessages();
       } catch (err) {
         document.getElementById('ai-typing-indicator')?.remove();
-        const errText = `❌ AI Error: ${err.message}`;
+        const errText = `❌ AI Error: ${err?.message || 'Unknown error'}`;
         aiChatHistory.push({
           role: 'model',
           text: errText,
           timestamp: Date.now()
         });
-        document.getElementById('ai-last-preview').textContent = errText;
+        const prevEl = document.getElementById('ai-last-preview');
+        if (prevEl) prevEl.textContent = errText;
         renderAIMessages();
       }
     }
